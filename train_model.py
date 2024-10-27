@@ -1,4 +1,6 @@
+import json
 import torch
+from tqdm import tqdm
 from model import Transformer
 from transformers import AutoTokenizer  # pip install transformers
 from utils import (
@@ -61,7 +63,8 @@ print(
 # minimize the loss function.
 optimizer = torch.optim.AdamW(m.parameters(), lr=LEARNING_RATE)
 
-for step in range(MAX_ITER):
+# for step in range(MAX_ITER):
+for step in tqdm(range(MAX_ITER), desc="Training Progress"):
 
     # every EVAL_INTER evaluate the loss on train and val sets
     if step % EVAL_INTER == 0 or step == MAX_ITER - 1:
@@ -86,6 +89,11 @@ for step in range(MAX_ITER):
     optimizer.step()
 
 save_model_to_chekpoint(model=m, path_to_checkpoint="checkpoints", epoch=step)
+
+# 保存 vocab_size
+vocab_info = {"vocab_size": vocab_size}
+with open("/content/drive/MyDrive/transformer/checkpoints/vocab_info.json", "w") as f:
+    json.dump(vocab_info, f)
 
 # generate some output based on the context
 context = torch.zeros((1, 1), dtype=torch.long, device=DEVICE)

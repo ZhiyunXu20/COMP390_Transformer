@@ -18,7 +18,8 @@ class AttentionHead(nn.Module):
         # of the model, so we assign it to the module using register_buffer
         self.register_buffer("tril", torch.tril(torch.ones(block_size, block_size)))
 
-        # let's also add dropout
+        # let's also add dropout 添加的 self.dropout 层:
+        # 使用指定的 dropout 率。
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
@@ -33,6 +34,7 @@ class AttentionHead(nn.Module):
         # decoder "learns" to predict next words
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float("-inf"))  # (B,T,T)
         wei = F.softmax(wei, dim=-1)  # (B,T,T)
+        # 应用 dropout 的位置:
         wei = self.dropout(wei)
         # weighted aggregation of the values
         v = self.value(x)
