@@ -1,5 +1,6 @@
-This commit is an AutoDL workspace snapshot pushed as branch "main".
-Upstream repo bashnick/transformer is not modified; only this fork receives this branch.
+This commit is an AutoDL workspace snapshot on branch "main" (this fork only).
+Pushing "main" does not rewrite or delete other branches on this remote (e.g. learn, tutorial).
+No other GitHub repository is modified by this operation.
 
 INCLUDED (source + configs + small data):
 - Root: mt_eval.py, report_extra_metrics.py, shell drivers (run_all_small_training.sh,
