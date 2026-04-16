@@ -1,0 +1,27 @@
+============================================================
+small_swap：法→英（子语料 + 小模型 + 短训练）
+============================================================
+
+说明：方向为法语→英语；语料列为 EN\tFR，训练时交换为 FR 源 / EN 目标。
+与全数据长训的绝对 BLEU 不可直接等同；与 EN→FR 的 small_try 数值也不可横向对比。
+
+单 run（dot_product） data_path: /root/autodl-tmp/small_swap/data/corpus_50k.tsv
+
+指标                              dot_product
+--------------------------------------------
+final_val_loss               2.839093812218411
+final_bleu                   66.06328636027612
+best_bleu_during_training    74.76743906106104
+optimizer_steps                        3000
+
+extra_metrics（最终评估；— 表示未写入或依赖未安装）:
+                                swap_fr_dot
+-------------------------------------------
+extra: chrF++                       78.1855
+extra: BERTScore F1                       —
+extra: COMET                         0.5990
+
+（当前为单 run 模式：未提供有效的 --add 路径。）
+
+撰写报告时可补充：数据子集规模、d_model/n_layers、max_steps、随机种子。
+============================================================

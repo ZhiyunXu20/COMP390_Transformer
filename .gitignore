@@ -1,0 +1,38 @@
+# Secrets — never commit
+token.txt
+.git-credentials.local
+*.pem
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Local / generated
+wandb/
+wandb_cache*/
+logs/
+.autodl/
+*.log
+
+# Root-level scratch logs
+_hf_mirror_test.log
+_metric_test_out.txt
+
+# Large full corpus (regenerate locally or from release)
+data/EN-FR.txt
+# Subset corpora used by small_* (regenerate: small_try/create_subset.py)
+small_try/data/corpus_50k.tsv
+small_swap/data/corpus_50k.tsv
+
+# Checkpoints & per-run training outputs
+**/runs/
+**/*.pt
+
+# Legacy / duplicate dirs not needed for reproducibility
+base_archive/
+Base_Improve/

@@ -1,0 +1,10 @@
+base_improve
+
+- BLEU 评估：跳过「英/法解码后 strip 相同」及「difflib 相似度≥bleu_skip_similarity_threshold(默认0.98)」的句对，避免数字行虚高；W&B 见 bleu_meta/*。
+
+- 架构与 base_1 相同（model.py / attention.py 未改结构）。
+- 数值超参与原 config 一致：batch_size=96, grad_accum_steps=2, max_steps=200000, lr=5e-4 等。
+- 数据：全量 /root/autodl-tmp/data/EN-FR.txt（与 base_1 同路径）。
+- 训练栈：TF32、cuda cudnn TF32、torch.compile（可 --no-compile 关）、AdamW fused、DataLoader prefetch_factor=4。
+- W&B：project en-fr-attention-improve，group base_improve；metrics.json 含 training_stack。
+- 流水线：improve_dot → improve_add → 报告；max_steps=200000 ×2，墙钟常为「数日」量级（视单步吞吐而定）。
