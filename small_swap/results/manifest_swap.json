@@ -1,0 +1,10 @@
+{
+  "finished_at": "2026-04-29T04:07:59Z",
+  "direction": "fr_en",
+  "data": "/root/autodl-tmp/small_swap/data/corpus_50k.tsv",
+  "report": "/root/autodl-tmp/small_swap/report_swap.txt",
+  "bundle": "/root/autodl-tmp/small_swap/results/bundle_swap_metrics.json",
+  "runs": {
+    "dot": "/root/autodl-tmp/small_swap/runs/swap_fr_dot"
+  }
+}

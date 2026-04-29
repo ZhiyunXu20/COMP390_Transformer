@@ -1,0 +1,33 @@
+============================================================
+small_try：注意力机制对比（子语料 + 小模型 + 短训练）
+============================================================
+
+说明：本报告用于课程/实验结论；与全数据长训的绝对 BLEU 不可直接等同。
+
+点积 (dot_product)  data_path: /root/autodl-tmp/data/splits/en_fr_50k_seed42/train.tsv
+加性 (additive)      data_path: /root/autodl-tmp/data/splits/en_fr_50k_seed42/train.tsv
+
+指标                              dot_product       additive
+----------------------------------------------------------
+final_val_loss               3.255485598200792 3.7452957502838835
+final_bleu                   16.94037313423783 8.930589237259069
+best_bleu_during_training    16.94037313423783 8.930589237259069
+optimizer_steps                        3000           3000
+
+extra_metrics（训练结束时的最终评估；— 表示未写入或依赖未安装）:
+                                dot_product       additive
+----------------------------------------------------------
+extra: chrF                         38.5531        26.8134
+extra: chrF++                       36.8851        25.4433
+extra: BERTScore F1                  0.8804         0.8540
+extra: COMET                         0.5073         0.4468
+
+结论（基于 final_bleu）：
+  缩放点积 (dot_product) 在本设定下验证 BLEU 更高。
+  Δ(BLEU) = additive - dot = -8.0098
+
+多指标摘要（additive - dot）：
+  Δchrf=-11.7397 | Δchrfpp=-11.4418 | Δbertscore_f1=-0.0265 | Δcomet=-0.0605
+
+撰写报告时可补充：数据子集规模、d_model/n_layers、max_steps、随机种子。
+============================================================

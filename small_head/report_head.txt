@@ -1,0 +1,33 @@
+========================================================================
+small_head：多头（基线） vs 全模型单头（点积为主；加性为可选第三列）
+========================================================================
+
+基线来自 small_try runs/fast_dot（n_heads=4, dot_product）。
+单头实验在本目录训练（n_heads=1）；默认流水线只训点积。
+
+指标                                     mh_dot(4h)         1h_dot
+----------------------------------------------------------------
+n_heads                                         4              1
+attention_type                        dot_product    dot_product
+final_val_loss                     3.255485598200792 3.3663144900183872
+final_bleu                         16.94037313423783 15.981798610798018
+best_bleu_during_training          16.94037313423783 15.981798610798018
+optimizer_steps                              3000           3000
+
+extra_metrics（训练结束时的最终评估；— 表示未写入或依赖未安装）:
+                                           mh_dot         1h_dot
+----------------------------------------------------------------
+extra: chrF                               38.5531        37.0704
+extra: chrF++                             36.8851        35.4585
+extra: BERTScore F1                        0.8804         0.8772
+extra: COMET                               0.5073         0.5011
+
+W&B（若存在）:
+  baseline: https://wandb.ai/zhiyun-xu20-university-of-l/attention-small-2/runs/n2vfoo5p
+  1h_dot:   https://wandb.ai/zhiyun-xu20-university-of-l/attention-small-2/runs/axjse6m4
+
+
+多指标摘要（1h_dot - mh_baseline）：
+  Δchrf=-1.4827 | Δchrfpp=-1.4265 | Δbertscore_f1=-0.0032 | Δcomet=-0.0062
+
+========================================================================

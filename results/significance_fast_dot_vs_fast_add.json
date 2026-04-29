@@ -1,0 +1,28 @@
+{
+  "predictions_a": "/root/autodl-tmp/runs/fast_dot/test_eval/predictions.jsonl",
+  "predictions_b": "/root/autodl-tmp/runs/fast_add/test_eval/predictions.jsonl",
+  "name_a": "fast_dot",
+  "name_b": "fast_add",
+  "n_sentences": 2500,
+  "bootstrap_samples": 2000,
+  "seed": 42,
+  "bleu": {
+    "score_a": 16.066693126898603,
+    "score_b": 8.163268278892572,
+    "delta_observed": 7.903424848006031,
+    "ci_low": 7.495926410617098,
+    "ci_high": 8.32805429763011,
+    "p_value_approx_two_sided": 0.0,
+    "ci_excludes_zero": true
+  },
+  "chrf": {
+    "score_a": 37.67012802375193,
+    "score_b": 26.125483052072422,
+    "delta_observed": 11.544644971679507,
+    "ci_low": 11.128783385732312,
+    "ci_high": 11.967028857161743,
+    "p_value_approx_two_sided": 0.0,
+    "ci_excludes_zero": true
+  },
+  "reference_mismatch_lines": 0
+}

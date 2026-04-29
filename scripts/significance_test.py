@@ -7,6 +7,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import math
 import random
@@ -27,16 +29,29 @@ except ImportError:
     sacrebleu = None
 
 
-def corpus_bleu(hyps: list[str], refs: list[str]) -> float:
+def corpus_bleu(hyps: list[str], refs: list[str], *, quiet: bool = False) -> float:
+    """quiet：屏蔽 SacreBLEU 在 bootstrap 内重复打印的 detokenize 提示（stderr）。"""
     from sacrebleu.metrics import BLEU
 
-    return float(BLEU().corpus_score(hyps, [refs]).score)
+    def _run() -> float:
+        return float(BLEU().corpus_score(hyps, [refs]).score)
+
+    if quiet:
+        with contextlib.redirect_stderr(io.StringIO()):
+            return _run()
+    return _run()
 
 
-def corpus_chrf_word_order_0(hyps: list[str], refs: list[str]) -> float:
+def corpus_chrf_word_order_0(hyps: list[str], refs: list[str], *, quiet: bool = False) -> float:
     from sacrebleu.metrics import CHRF
 
-    return float(CHRF(word_order=0).corpus_score(hyps, [refs]).score)
+    def _run() -> float:
+        return float(CHRF(word_order=0).corpus_score(hyps, [refs]).score)
+
+    if quiet:
+        with contextlib.redirect_stderr(io.StringIO()):
+            return _run()
+    return _run()
 
 
 def load_predictions_jsonl(path: Path) -> tuple[list[str], list[str], list[str]]:
@@ -84,8 +99,10 @@ def paired_bootstrap_both_metrics(
         ha = [hyp_a[i] for i in idx]
         hb = [hyp_b[i] for i in idx]
         rs = [refs[i] for i in idx]
-        boot_bleu.append(corpus_bleu(ha, rs) - corpus_bleu(hb, rs))
-        boot_chrf.append(corpus_chrf_word_order_0(ha, rs) - corpus_chrf_word_order_0(hb, rs))
+        boot_bleu.append(corpus_bleu(ha, rs, quiet=True) - corpus_bleu(hb, rs, quiet=True))
+        boot_chrf.append(
+            corpus_chrf_word_order_0(ha, rs, quiet=True) - corpus_chrf_word_order_0(hb, rs, quiet=True)
+        )
 
     return ba, bb, ca, cb, boot_bleu, boot_chrf
 
@@ -121,7 +138,12 @@ def main() -> None:
     p.add_argument("--predictions-b", type=str, required=True, help="系统 B")
     p.add_argument("--name-a", type=str, default="system_A")
     p.add_argument("--name-b", type=str, default="system_B")
-    p.add_argument("--bootstrap-samples", type=int, default=10000)
+    p.add_argument(
+        "--bootstrap-samples",
+        type=int,
+        default=2000,
+        help="bootstrap 重采样次数（越大越慢；论文常用 1000–10000）",
+    )
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--alpha", type=float, default=0.05, help="置信区间 (1-alpha)")
     p.add_argument(

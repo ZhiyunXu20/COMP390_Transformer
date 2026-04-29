@@ -1,0 +1,12 @@
+{
+  "finished_at": "2026-04-29T03:55:10Z",
+  "baseline_metrics_path": "/root/autodl-tmp/runs/fast_dot/metrics.json",
+  "data_path": "/root/autodl-tmp/small_try/data/corpus_50k.tsv",
+  "report": "/root/autodl-tmp/small_head/report_head.txt",
+  "bundle": "/root/autodl-tmp/small_head/results/bundle_head_metrics.json",
+  "param_counts": "/root/autodl-tmp/small_head/results/param_counts.json",
+  "runs": {
+    "baseline_mh_dot": "/root/autodl-tmp/runs/fast_dot",
+    "head_1h_dot": "/root/autodl-tmp/runs/head_1h_dot"
+  }
+}

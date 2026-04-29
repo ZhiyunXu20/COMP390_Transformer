@@ -1,0 +1,10 @@
+{
+  "finished_at": "2026-04-29T03:42:49Z",
+  "data": "/root/autodl-tmp/small_try/data/corpus_50k.tsv",
+  "report": "/root/autodl-tmp/small_try/report.txt",
+  "bundle": "/root/autodl-tmp/small_try/results/bundle_metrics.json",
+  "runs": {
+    "dot": "/root/autodl-tmp/runs/fast_dot",
+    "add": "/root/autodl-tmp/runs/fast_add"
+  }
+}

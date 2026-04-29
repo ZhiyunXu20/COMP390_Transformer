@@ -4,6 +4,7 @@
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$ROOT/.." && pwd)"
 cd "$ROOT"
 
 export PYTHONUNBUFFERED=1
@@ -36,26 +37,27 @@ python train.py --attention dot_product --name fast_dot --max-steps "$MAXS" "${E
 log "[3/5] 训练 additive → runs/fast_add/"
 python train.py --attention additive --name fast_add --max-steps "$MAXS" "${EXTRA[@]}" "${BATCH_OPT[@]}"
 
-log "[4/5] 生成 report.txt 与 bundle_metrics.json"
+log "[4/5] 生成 report.txt 与 bundle_metrics.json（metrics 在仓库根 runs/，见 train_runtime）"
 python compare_runs.py \
-  --dot runs/fast_dot/metrics.json \
-  --add runs/fast_add/metrics.json \
+  --dot "$REPO/runs/fast_dot/metrics.json" \
+  --add "$REPO/runs/fast_add/metrics.json" \
   --out report.txt \
   --json-bundle results/bundle_metrics.json
 
 log "[5/5] 写入流水线清单 manifest.json"
-small_try_root="$ROOT" python - << 'PY'
+small_try_root="$ROOT" REPO="$REPO" python - << 'PY'
 import json, time, os
 from pathlib import Path
 root = Path(os.environ["small_try_root"])
+repo = Path(os.environ["REPO"])
 m = {
     "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     "data": str(root / "data/corpus_50k.tsv"),
     "report": str(root / "report.txt"),
     "bundle": str(root / "results/bundle_metrics.json"),
     "runs": {
-        "dot": str(root / "runs/fast_dot"),
-        "add": str(root / "runs/fast_add"),
+        "dot": str(repo / "runs/fast_dot"),
+        "add": str(repo / "runs/fast_add"),
     },
 }
 (root / "results" / "manifest.json").write_text(json.dumps(m, indent=2), encoding="utf-8")
@@ -63,4 +65,4 @@ print("MANIFEST ->", root / "results/manifest.json")
 PY
 
 log "======== 全部成功 ========"
-log "查看: report.txt | results/bundle_metrics.json | runs/fast_*/metrics.json"
+log "查看: report.txt | results/bundle_metrics.json | $REPO/runs/fast_*/"

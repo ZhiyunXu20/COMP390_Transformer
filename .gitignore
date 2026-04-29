@@ -34,6 +34,7 @@ wandb_cache*/
 logs/
 .autodl/
 *.log
+.pid
 
 # Root-level scratch logs
 _hf_mirror_test.log
