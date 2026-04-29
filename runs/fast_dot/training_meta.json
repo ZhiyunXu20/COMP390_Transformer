@@ -1,0 +1,7 @@
+{
+  "wall_time_seconds": 790.929465145804,
+  "num_parameters": 30442800,
+  "peak_gpu_memory_bytes": 10862210560,
+  "peak_gpu_memory_mib": 10359.01123046875,
+  "run_directory": "/root/autodl-tmp/runs/fast_dot"
+}

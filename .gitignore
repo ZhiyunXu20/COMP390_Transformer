@@ -47,8 +47,9 @@ small_try/data/corpus_50k.tsv
 small_swap/data/corpus_50k.tsv
 
 # Checkpoints & per-run training outputs
-**/runs/
 **/*.pt
+# runs/: keep JSON/Markdown summaries (metrics, config, test_eval tables); omit checkpoints (**/*.pt) and line-level preds
+runs/**/predictions.jsonl
 *.pth
 *.ckpt
 *.safetensors

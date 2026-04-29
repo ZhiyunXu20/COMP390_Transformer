@@ -1,0 +1,7 @@
+{
+  "wall_time_seconds": 1983.8700214531273,
+  "num_parameters": 30845232,
+  "peak_gpu_memory_bytes": 54340902400,
+  "peak_gpu_memory_mib": 51823.52294921875,
+  "run_directory": "/root/autodl-tmp/runs/fast_add"
+}
