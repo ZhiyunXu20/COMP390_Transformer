@@ -1,6 +1,6 @@
 {
-  "predictions_a": "/root/autodl-tmp/runs/fast_dot/test_eval/predictions.jsonl",
-  "predictions_b": "/root/autodl-tmp/runs/fast_add/test_eval/predictions.jsonl",
+  "predictions_a": "runs/fast_dot/test_eval/predictions.jsonl",
+  "predictions_b": "runs/fast_add/test_eval/predictions.jsonl",
   "name_a": "fast_dot",
   "name_b": "fast_add",
   "n_sentences": 2500,

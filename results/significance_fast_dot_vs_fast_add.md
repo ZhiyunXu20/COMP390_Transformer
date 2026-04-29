@@ -2,8 +2,8 @@
 
 ## 设定
 
-- **系统 A** (fast_dot): `/root/autodl-tmp/runs/fast_dot/test_eval/predictions.jsonl`
-- **系统 B** (fast_add): `/root/autodl-tmp/runs/fast_add/test_eval/predictions.jsonl`
+- **系统 A** (fast_dot): `runs/fast_dot/test_eval/predictions.jsonl`
+- **系统 B** (fast_add): `runs/fast_add/test_eval/predictions.jsonl`
 - **配对句数** N = 2500
 - **Bootstrap 次数** B = 2000（同一套句子重采样下同时计算 BLEU 差与 chrF 差）。
 - **RNG 种子** 42。

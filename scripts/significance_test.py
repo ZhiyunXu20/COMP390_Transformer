@@ -18,6 +18,16 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+
+def display_path_under_repo(path: Path) -> str:
+    """写入报告时使用相对仓库根的路径，便于 clone 后在任意机器上阅读。"""
+    rp = path.resolve()
+    root = REPO_ROOT.resolve()
+    try:
+        return rp.relative_to(root).as_posix()
+    except ValueError:
+        return rp.as_posix()
+
 try:
     from tqdm import tqdm
 except ImportError:
@@ -200,6 +210,9 @@ def main() -> None:
     bleu_sig = ci_excludes_zero(ci_bleu_lo, ci_bleu_hi)
     chrf_sig = ci_excludes_zero(ci_c_lo, ci_c_hi)
 
+    pa_disp = display_path_under_repo(pa)
+    pb_disp = display_path_under_repo(pb)
+
     out_md = Path(args.output_md).expanduser().resolve()
     out_md.parent.mkdir(parents=True, exist_ok=True)
 
@@ -219,8 +232,8 @@ def main() -> None:
         "",
         "## 设定",
         "",
-        f"- **系统 A** ({args.name_a}): `{pa}`",
-        f"- **系统 B** ({args.name_b}): `{pb}`",
+        f"- **系统 A** ({args.name_a}): `{pa_disp}`",
+        f"- **系统 B** ({args.name_b}): `{pb_disp}`",
         f"- **配对句数** N = {len(ref_a)}",
         f"- **Bootstrap 次数** B = {args.bootstrap_samples}（同一套句子重采样下同时计算 BLEU 差与 chrF 差）。",
         f"- **RNG 种子** {args.seed}。",
@@ -265,8 +278,8 @@ def main() -> None:
     out_md.write_text("\n".join(lines), encoding="utf-8")
 
     summary: dict[str, Any] = {
-        "predictions_a": str(pa),
-        "predictions_b": str(pb),
+        "predictions_a": pa_disp,
+        "predictions_b": pb_disp,
         "name_a": args.name_a,
         "name_b": args.name_b,
         "n_sentences": len(ref_a),

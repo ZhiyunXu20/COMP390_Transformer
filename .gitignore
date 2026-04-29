@@ -50,6 +50,11 @@ small_swap/data/corpus_50k.tsv
 **/*.pt
 # runs/: keep JSON/Markdown summaries (metrics, config, test_eval tables); omit checkpoints (**/*.pt) and line-level preds
 runs/**/predictions.jsonl
+# Baseline runs: committed for significance bootstrap (scripts/significance_test.py) clone-safe repro
+!runs/fast_dot/test_eval/predictions.jsonl
+!runs/fast_add/test_eval/predictions.jsonl
+!runs/head_1h_dot/test_eval/predictions.jsonl
+!runs/swap_fr_dot/test_eval/predictions.jsonl
 *.pth
 *.ckpt
 *.safetensors
