@@ -1,7 +1,6 @@
-"""完整 Encoder–Decoder Transformer（与 `conclusion/base/transformer architecture.svg` 语义一致）。
-
-该 SVG 为经典「Attention Is All You Need」结构图（编码器栈 + 解码器栈、多头注意力、
-前馈子层、残差与归一化、掩码自注意力与编码器–解码器注意力）。本实现对应关系如下：
+"""完整 Encoder–Decoder Transformer，对应 Vaswani et al.「Attention Is All You Need」中的
+标准结构（编码器栈 + 解码器栈、多头注意力、前馈子层、残差与归一化、掩码自注意力与
+编码器–解码器交叉注意力）。下文「图中」指该论文常见的框图约定。本实现对应关系如下：
 
 - 输入嵌入 + 位置编码：`src_embed`/`tgt_embed` + `PositionalEncoding`（图中 Input Embedding、
   Positional Encoding）。

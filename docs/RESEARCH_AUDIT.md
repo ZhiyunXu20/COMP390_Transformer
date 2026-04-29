@@ -1,7 +1,7 @@
 # 科研工程审计报告（仓库快照）
 
 **角色**：严格审稿视角（可复现性、声称与实现一致性、指标语义）。  
-**范围**：`small_try`、`small_head`、`small_swap`、`base_1`、`conclusion`（若存在）、`scripts`、`data`。  
+**范围**：`small_try`、`small_head`、`small_swap`、`base_1`、`scripts`、`data`。  
 **说明**：本文件仅基于当前仓库源码与配置可读内容；**不修改代码**。
 
 ---
@@ -10,7 +10,7 @@
 
 - **序列到序列 Transformer（Encoder–Decoder）**：嵌入 + 位置编码（`small_try/model.py` `Seq2SeqTransformer`）、每层 Pre-LN（`EncoderLayer` / `DecoderLayer` 中先 `LayerNorm` 再子层）。
 - **三类注意力位置**：编码器自注意力、解码器因果自注意力、解码器对 encoder memory 的交叉注意力；均由 `MultiHeadAttention` 实例承担（`small_try/model.py` `EncoderLayer.self_attn`、`DecoderLayer.self_attn`、`DecoderLayer.cross_attn`）。
-- **注意力类型可配置**：`small_try/attention.py` 中 `build_core_attention(cfg, attn_layer)` 支持 `dot_product`、`additive` 及扩展类型（`bilinear`、`gated_dot_additive`、`local_window`、`global_local`、`sparsemax`、`entmax15`）。`base_1/attention.py` **仅**实现 `dot_product` 与 `additive`（`build_core_attention` 无 `attn_layer` 参数）。
+- **注意力类型可配置**：`small_try/attention.py` 中 `build_core_attention(cfg, attn_layer)` 支持 `dot_product`、`additive` 及扩展类型（`bilinear`、`gated_dot_additive`、`local_window`、`global_local`、`sparsemax`、`entmax15`）。其中 **`local_window` / `global_local` 为稠密 masked attention**（完整 `L×L` 打分 + softmax，仅用结构掩码表达局部带 / 全局锚点先验），**不是** Longformer / ETC 等稀疏核式的「高效注意力」实现。`base_1/attention.py` **仅**实现 `dot_product` 与 `additive`（`build_core_attention` 无 `attn_layer` 参数）。
 - **训练脚本**（以 `small_try/train.py` 为代表）：AdamW + warmup（`get_warmup_lambda`）、Teacher forcing CE（`build_logits_shifted_loss`）、周期性在 `eval_split` 上做 greedy + `mt_eval.evaluate_generation_corpus`；训练结束再做一次 `force_heavy=True` 的生成评估并写入 `metrics.json`（`save_metrics_json`）。
 - **评估**：`mt_eval.py` 提供 BLEU（SacreBLEU）、chrF/chrF++、`score_bertscore_f1`、`score_comet`；`compute_extra_metrics` 内对 **BERTScore/COMET** 有 **heavy 步频门控**（见 §5）。
 - **数据**：平行句对 TSV + SentencePiece tokenizer JSON（`dataset.py` `load_tokenizers`）；划分可由 `scripts/create_splits.py` 生成 manifest（见 §3）。
@@ -26,14 +26,15 @@
 
 - `EncoderLayer.forward`：`self.self_attn(q,q,q, attn_mask=src_key_padding)`（`small_try/model.py`）。
 - `DecoderLayer.forward`：自注意力 `self.self_attn(..., attn_mask=tgt_mask)`；交叉注意力 `self.cross_attn(q2, memory, memory, attn_mask=memory_key_padding)`（同上）。
-- **同一套 `MultiHeadAttention`** 内部只构造 **一个** `build_core_attention(cfg, attn_layer)` 的结果（`small_try/attention.py` `MultiHeadAttention.__init__`），即 **encoder / decoder-self / cross 共用同一种 `attention_type` 对应的 core**（仅 `attn_layer` 字符串用于 `local_window`/`global_local` 的结构掩码）。
+- **同一套 `MultiHeadAttention`** 内部只构造 **一个** `build_core_attention(cfg, attn_layer)` 的结果（`small_try/attention.py` `MultiHeadAttention.__init__`），即 **encoder / decoder-self / cross 共用同一种 `attention_type` 对应的 core**（仅 `attn_layer` 字符串用于 `local_window`/`global_local` 的 **稠密**结构掩码）。
 
-因此：**是**——当 `cfg.attention_type` 为 `dot_product` 或 `additive` 时，三种位置的注意力核心均为对应实现（`ScaledDotProductAttention` 或 `AdditiveAttention`，见 `build_core_attention` 分支 `411:444:small_try/attention.py`）。
+因此：**是**——当 `cfg.attention_type` 为 `dot_product` 或 `additive` 时，三种位置的注意力核心均为对应实现（`ScaledDotProductAttention` 或 `AdditiveAttention`，见 `build_core_attention` 分支 `429:466:small_try/attention.py`）。
 
 ### `base_1`
 
 - `base_1/model.py` 中三类注意力同样经由 `MultiHeadAttention`，`build_core_attention(cfg)` 仅在 `dot_product`/`additive` 间切换（`base_1/attention.py` `69:75`）。
 - **注意**：`base_1` 的 `MultiHeadAttention` **无** `attn_layer` 参数（与 `small_*` 分叉）。
+- **叙事对齐**：范围与限制见 **`base_1/README.md`**（仅 dot/add；不代表 `small_try` 全部变体已迁入该路径）。
 
 ---
 
@@ -86,7 +87,7 @@
 
 ## 6. `small_head` 单头实验的解释风险
 
-- **公平性**：单头时 `d_k = d_model // n_heads`（`small_try/attention.py` `467`）。若仅将 `n_heads` 改为 1 而保持 `d_model`，则 **每头维度变大**，与多头基线的 **per-head 宽度不同**，比较的是「不同分解方式的 MHA」，而非「仅 head 数变化」。
+- **公平性**：单头时 `d_k = d_model // n_heads`（`small_try/attention.py` `489–490`）。若仅将 `n_heads` 改为 1 而保持 `d_model`，则 **每头维度变大**，与多头基线的 **per-head 宽度不同**，比较的是「不同分解方式的 MHA」，而非「仅 head 数变化」。
 - **默认配置**：`small_head/config.py` 仍默认 `n_heads: int = 4`（`39:46`）；单头需用户在 CLI/配置中显式改为 `1`，否则并非单头实验。
 - **注意力可视化**：W&B 热力图路径依赖 `decoder_cross`（`small_try/train.py` `363:376`）；单头时图为 1 列 head，解释「分工」受限——与多头对比时需声明。
 
@@ -115,8 +116,8 @@
 | **缺失数据/划分** | `TabParallelDataset` 文件不存在即抛错（`dataset.py`）。`data/EN-FR.txt` 在 `.gitignore` 中，需要本地生成或自备才能跑 `create_splits`。 |
 | **Checkpoint** | `.gitignore` 忽略 `**/*.pt`；仓库克隆后 **不含** 训练权重。 |
 | **`predictions.jsonl` 落地位置** | 未传路径时写到 **进程 cwd** 的 `predictions.jsonl`（见 §5），易导致「找不到预测文件」或混入他人运行产物。 |
-| **`conclusion/` 目录** | 当前快照中 **不存在**该目录；`base_1/model.py` 文档仍引用 `conclusion/base/transformer architecture.svg`（`base_1/model.py` 文件头注释），与仓库现状 **不一致**，属文档漂移。 |
-| **`base_1` 与 `small_*` 分叉** | `base_1` 仍为旧版 `MultiHeadAttention(cfg)` / 二元 `attention_type`，与 `small_try` 扩展注意力 **不是**同一代码路径。 |
+| **示意图路径注释（任务十已对齐）** | `base_1/model.py` 等注释已与仓库目录对齐：改为 Vaswani et al. 标准结构的文字描述，不再指向仓库内不存在的示意图路径（详见 **`base_1/README.md`**）。 |
+| **`base_1` 与 `small_*` 分叉** | `base_1` 仍为旧版 `MultiHeadAttention(cfg)` / 仅二元 `attention_type`，与 `small_try` 扩展注意力 **不是**同一代码路径；**不代表**全部 `small_try` 变体已迁入该栈。 |
 
 ---
 
@@ -131,8 +132,7 @@
 ### P1（可复现性与工程卫生）
 
 1. **预测文件路径**：训练结束若写 `predictions.jsonl`，应固定到 **run 目录**（当前依赖 cwd 的行为见 `mt_eval.py`）。
-2. **Heavy 指标间隔**：默认 `eval_heavy_metrics_every_optimizer_steps=2000` 与 `val_every=120` 组合，导致训练中大部分时间 **无** BERT/COMET；若期望监控曲线，应调整步频或在文档中说明。
-3. **同步文档**：移除或更新 `base_1/model.py` 对已删除 `conclusion/` 路径的引用。
+3. **文档与目录对齐**：`base_1` 注释与 **`base_1/README.md`** 已统一说明注意力范围与分叉关系（任务十）。
 
 ### P2（增强与扩展）
 

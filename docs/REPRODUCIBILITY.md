@@ -125,6 +125,8 @@ python small_head/train.py --help
 python small_swap/train.py --help
 ```
 
+**`local_window` / `global_local`：** 代码中为 **dense masked attention**（完整 `L×L` 注意力打分 + softmax，仅用加性掩码表达局部带或「全局锚点 + 局部带」先验）。**不是** Longformer / ETC 等稀疏核或未物化的块稀疏注意力实现；勿在论文中写成「稀疏 / 线性复杂度注意力模块」，除非另行实现并单独命名。
+
 ### small_try（英→法）
 
 默认：`config.py` 中 `train_path` 等为 `data/splits/en_fr_50k_seed42/...`，`output_dir` 为 `runs`。
@@ -163,6 +165,10 @@ python small_swap/train.py \
   --name swap_fr_dot \
   --no-wandb
 ```
+
+## base_1（独立 Encoder–Decoder 栈）
+
+仓库中的 **`base_1/`** 是与 `small_try` **分叉**的另一套完整 Transformer 训练目录；**仅**支持缩放点积与加性注意力，**不表示** `small_try` 里的全部注意力变体都已并入该路径。适用范围与论文叙事对齐说明见 **`base_1/README.md`**。
 
 ## 流水线脚本（可选）
 
