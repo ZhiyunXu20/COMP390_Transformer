@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
+_REPO_ROOT = _ROOT
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 from report_extra_metrics import append_extra_conclusion_two, append_extra_rows_two_cols
@@ -22,22 +23,22 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument(
         "--dot",
-        default="/root/autodl-tmp/small_try/runs/fast_dot/metrics.json",
-        help="点积注意力 run 的 metrics.json",
+        default=str(_REPO_ROOT / "runs" / "fast_dot" / "metrics.json"),
+        help="点积注意力 run 的 metrics.json（相对仓库根的路径亦可）",
     )
     p.add_argument(
         "--add",
-        default="/root/autodl-tmp/small_try/runs/fast_add/metrics.json",
+        default=str(_REPO_ROOT / "runs" / "fast_add" / "metrics.json"),
         help="加性注意力 run 的 metrics.json",
     )
     p.add_argument(
         "--out",
-        default="/root/autodl-tmp/small_try/report.txt",
+        default=str(_REPO_ROOT / "small_try" / "report.txt"),
         help="输出报告路径",
     )
     p.add_argument(
         "--json-bundle",
-        default="/root/autodl-tmp/small_try/results/bundle_metrics.json",
+        default=str(_REPO_ROOT / "small_try" / "results" / "bundle_metrics.json"),
         help="合并两次 metrics.json 的路径（便于归档）",
     )
     args = p.parse_args()

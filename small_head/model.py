@@ -33,7 +33,7 @@ def _key_pad_mask(
 class EncoderLayer(nn.Module):
     def __init__(self, cfg: Config):
         super().__init__()
-        self.self_attn = MultiHeadAttention(cfg)
+        self.self_attn = MultiHeadAttention(cfg, attn_layer="encoder_self")
         self.ff = PositionwiseFFN(cfg)
         self.norm1 = nn.LayerNorm(cfg.d_model)
         self.norm2 = nn.LayerNorm(cfg.d_model)
@@ -55,8 +55,8 @@ class EncoderLayer(nn.Module):
 class DecoderLayer(nn.Module):
     def __init__(self, cfg: Config):
         super().__init__()
-        self.self_attn = MultiHeadAttention(cfg)
-        self.cross_attn = MultiHeadAttention(cfg)
+        self.self_attn = MultiHeadAttention(cfg, attn_layer="decoder_self")
+        self.cross_attn = MultiHeadAttention(cfg, attn_layer="cross")
         self.ff = PositionwiseFFN(cfg)
         self.norm1 = nn.LayerNorm(cfg.d_model)
         self.norm2 = nn.LayerNorm(cfg.d_model)

@@ -1,0 +1,17 @@
+{
+  "creation_time": "2026-04-29T01:57:29.673893+00:00",
+  "train_file": "/root/autodl-tmp/data/splits/en_fr_50k_seed42/train.tsv",
+  "train_file_sha256": "16d25ad3d6e61bf3419be60d181c7ba605eb003f82dfa72010807e7b84d6f5d1",
+  "vocab_size": 30000,
+  "tokenizer_src_out": "/root/autodl-tmp/data/tokenizer_src_train_only.json",
+  "tokenizer_tgt_out": "/root/autodl-tmp/data/tokenizer_tgt_train_only.json",
+  "special_tokens_ids_0_to_3": [
+    "[UNK]",
+    "[PAD]",
+    "[BOS]",
+    "[EOS]"
+  ],
+  "train_lines_non_empty_src_col": 45000,
+  "train_lines_non_empty_tgt_col": 45000,
+  "reference_tokenizer_used_for_specials": "/root/autodl-tmp/data/tokenizer_src.json"
+}

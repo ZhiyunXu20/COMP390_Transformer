@@ -12,8 +12,21 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
-# IDE / local
-.cursor/
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE / local (keep .cursor/rules/ for shared Cursor rules)
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
+
+# OS
+.DS_Store
 
 # Local / generated
 wandb/
@@ -35,6 +48,9 @@ small_swap/data/corpus_50k.tsv
 # Checkpoints & per-run training outputs
 **/runs/
 **/*.pt
+*.pth
+*.ckpt
+*.safetensors
 
 # Legacy / duplicate dirs not needed for reproducibility
 base_archive/

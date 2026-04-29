@@ -1,4 +1,4 @@
-"""并行句对：支持 EN\\tFR 正向或交换列做法→英（small_swap）。"""
+"""并行句对：split TSV 或 legacy 单文件；可选 swap 列做法→英（small_swap）。"""
 
 from __future__ import annotations
 
@@ -21,13 +21,42 @@ def load_tokenizers(cfg: Config) -> tuple[Tokenizer, Tokenizer]:
     return Tokenizer.from_file(cfg.tokenizer_src), Tokenizer.from_file(cfg.tokenizer_tgt)
 
 
+def _split_tsv_path(cfg: Config, split: Literal["train", "val", "test"]) -> str:
+    key = {"train": "train_path", "val": "val_path", "test": "test_path"}[split]
+    p = getattr(cfg, key, None)
+    if isinstance(p, str) and p.strip():
+        return p.strip()
+    raise ValueError(f"config.{key} 为空；请在 Config 或命令行指定划分文件")
+
+
+def _legacy_split_bucket(
+    valid_pair_index: int,
+    train_r: float,
+    val_r: float,
+    test_r: float,
+) -> Literal["train", "val", "test"]:
+    s = train_r + val_r + test_r
+    if s <= 0:
+        raise ValueError("legacy split ratios must sum to a positive value")
+    train_r, val_r, test_r = train_r / s, val_r / s, test_r / s
+    scale = 1000
+    t_end = int(round(scale * train_r))
+    v_end = int(round(scale * (train_r + val_r)))
+    m = valid_pair_index % scale
+    if m < t_end:
+        return "train"
+    if m < v_end:
+        return "val"
+    return "test"
+
+
 class TabParallelDataset(Dataset):
     def __init__(
         self,
         cfg: Config,
         src_tok: Tokenizer,
         tgt_tok: Tokenizer,
-        split: Literal["train", "val"],
+        split: Literal["train", "val", "test"],
     ):
         self.cfg = cfg
         self.src_tok = src_tok
@@ -38,27 +67,69 @@ class TabParallelDataset(Dataset):
 
         swap = getattr(cfg, "swap_parallel_columns", False)
 
-        period = max(1, int(round(1.0 / cfg.val_ratio)))
-        with open(cfg.data_path, "r", encoding="utf-8") as f:
-            for idx, line in enumerate(f):
-                parts = line.strip().split("\t")
+        def append_pair(a: str, b: str) -> None:
+            if swap:
+                self.src_lines.append(b)
+                self.tgt_lines.append(a)
+            else:
+                self.src_lines.append(a)
+                self.tgt_lines.append(b)
+
+        use_splits = getattr(cfg, "use_split_files", True)
+        if use_splits:
+            path = _split_tsv_path(cfg, split)
+            if not os.path.isfile(path):
+                raise FileNotFoundError(
+                    f"[{split}] 数据文件不存在: {path}\n"
+                    "请先运行: python scripts/make_splits.py ... 或在 Config 中指向已有 train.tsv / val.tsv / test.tsv"
+                )
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.rstrip("\n").split("\t")
+                    if len(parts) != 2:
+                        continue
+                    append_pair(parts[0].strip(), parts[1].strip())
+            dir_note = "swap FR→EN" if swap else "EN→FR"
+            print(f"[{split}] 加载 {len(self.src_lines)} 条句对 ({dir_note}) <- {path}")
+            return
+
+        dp = getattr(cfg, "data_path", None)
+        if not isinstance(dp, str) or not dp.strip():
+            raise ValueError(
+                "use_split_files=False 时请在 Config.data_path 指定单个 Tab 语料（如 corpus_50k.tsv）"
+            )
+        if not os.path.isfile(dp):
+            raise FileNotFoundError(
+                f"[{split}] legacy 数据文件不存在: {dp}\n"
+                "或设置 use_split_files=True 并使用 scripts/make_splits.py 生成的划分文件。"
+            )
+        test_r = float(getattr(cfg, "test_ratio", 0.05))
+        train_r = 1.0 - float(cfg.val_ratio) - test_r
+        if train_r <= 0:
+            raise ValueError("legacy 模式需要 val_ratio + test_ratio < 1")
+
+        pi = 0
+        with open(dp, "r", encoding="utf-8") as f:
+            for line in f:
+                raw = line.rstrip("\n")
+                if not raw.strip():
+                    continue
+                parts = raw.split("\t")
                 if len(parts) != 2:
                     continue
-                is_val = idx % period == 0
-                if split == "val" and not is_val:
+                s0, t0 = parts[0].strip(), parts[1].strip()
+                if not s0 or not t0 or s0 == t0:
                     continue
-                if split == "train" and is_val:
+                bucket = _legacy_split_bucket(pi, train_r, float(cfg.val_ratio), test_r)
+                pi += 1
+                if bucket != split:
                     continue
-                if swap:
-                    # 语料 EN \\t FR → 源=FR，目标=EN
-                    self.src_lines.append(parts[1])
-                    self.tgt_lines.append(parts[0])
-                else:
-                    self.src_lines.append(parts[0])
-                    self.tgt_lines.append(parts[1])
+                append_pair(s0, t0)
 
         dir_note = "swap FR→EN" if swap else "EN→FR"
-        print(f"[{split}] 加载 {len(self.src_lines)} 条句对 ({dir_note}, period={period})")
+        print(
+            f"[{split}] 加载 {len(self.src_lines)} 条句对 ({dir_note}; legacy 单文件 bucket) <- {dp}"
+        )
 
     def __len__(self) -> int:
         return len(self.src_lines)

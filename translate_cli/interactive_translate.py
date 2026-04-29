@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-英->法 交互翻译：根据 checkpoint 自动选择 small_try / small_head / small_swap / base_improve / base_1 代码目录并加载权重。
-用法:
-  python interactive_translate.py --checkpoint /path/to/best.pt
-  echo 'Hello .' | python interactive_translate.py -c ...   # 非交互一行
+英->法 交互翻译：用 --pkg 指定训练时使用的代码目录（small_try / small_head / …）并加载权重。
+在仓库根目录运行；-c 可为相对路径（相对仓库根）。
+
+  python translate_cli/interactive_translate.py -c runs/<run>/best.pt --pkg small_try
+  echo 'Hello.' | python translate_cli/interactive_translate.py -c runs/fast_dot/best.pt --pkg small_try
 """
 
 from __future__ import annotations
@@ -17,22 +18,14 @@ import torch
 from tokenizers import Tokenizer
 
 
-def resolve_codebase_root(checkpoint: Path) -> Path:
-    """checkpoint 路径须位于 .../small_try/...、.../small_head/...、.../small_swap/...、.../base_improve/... 或 .../base_1/... 下。"""
-    p = checkpoint.resolve()
-    for name in ("small_try", "small_head", "small_swap", "base_improve", "base_1"):
-        if name in p.parts:
-            i = p.parts.index(name)
-            return Path(*p.parts[: i + 1])
-    raise ValueError(
-        f"无法从 {checkpoint} 推断训练代码目录，请将 .pt 放在 small_try/small_head/small_swap/base_improve/base_1/runs/ 下"
-    )
-
-
-def load_model_and_tokenizers(checkpoint: Path, device: torch.device):
-    root = resolve_codebase_root(checkpoint)
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
+def load_model_and_tokenizers(
+    checkpoint: Path,
+    device: torch.device,
+    *,
+    codebase_root: Path,
+):
+    if str(codebase_root) not in sys.path:
+        sys.path.insert(0, str(codebase_root))
 
     from dataset import load_tokenizers, tokenizer_special_ids  # noqa: E402
     from model import Seq2SeqTransformer  # noqa: E402
@@ -84,27 +77,53 @@ def translate_line(
     return tgt_tok.decode(hyp_ids)
 
 
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="英->法 终端翻译（加载 Seq2SeqTransformer checkpoint）")
     p.add_argument(
         "--checkpoint",
         "-c",
         type=Path,
-        default=Path("/root/autodl-tmp/small_try/runs/fast_dot/best.pt"),
-        help="best.pt 或 last.pt",
+        default=None,
+        help="best.pt / last.pt（相对仓库根或绝对路径）",
+    )
+    p.add_argument(
+        "--pkg",
+        type=str,
+        default="small_try",
+        choices=("small_try", "small_head", "small_swap", "base_improve", "base_1"),
+        help="训练时使用的代码目录（checkpoint 在仓库 runs/ 下时必须指定以加载 dataset/model）",
     )
     p.add_argument("--cpu", action="store_true", help="强制 CPU")
     args = p.parse_args()
+    ckpt = args.checkpoint
+    if ckpt is None:
+        ckpt = _REPO_ROOT / "runs" / "best.pt"
+    else:
+        ckpt = Path(ckpt)
+        if not ckpt.is_absolute():
+            ckpt = (_REPO_ROOT / ckpt).resolve()
 
-    if not args.checkpoint.is_file():
-        print(f"找不到 checkpoint: {args.checkpoint}", file=sys.stderr)
+    if not ckpt.is_file():
+        print(f"找不到 checkpoint: {ckpt}", file=sys.stderr)
+        print(
+            "示例：python translate_cli/interactive_translate.py -c runs/<run_name>/best.pt",
+            file=sys.stderr,
+        )
         raise SystemExit(1)
 
     device = torch.device("cpu" if args.cpu or not torch.cuda.is_available() else "cuda")
-    print(f"加载: {args.checkpoint}", file=sys.stderr)
+    print(f"加载: {ckpt}", file=sys.stderr)
     print(f"设备: {device}", file=sys.stderr)
 
-    bundle = load_model_and_tokenizers(args.checkpoint, device)
+    codebase_root = (_REPO_ROOT / args.pkg).resolve()
+    if not codebase_root.is_dir():
+        print(f"找不到代码目录: {codebase_root}", file=sys.stderr)
+        raise SystemExit(1)
+
+    bundle = load_model_and_tokenizers(ckpt, device, codebase_root=codebase_root)
     model, src_tok, tgt_tok, cfg, pad_idx, bos_id, eos_id = bundle
 
     def one(line: str) -> None:

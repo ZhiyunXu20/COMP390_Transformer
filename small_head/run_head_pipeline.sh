@@ -4,6 +4,7 @@
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$ROOT/.." && pwd)"
 cd "$ROOT"
 
 export PYTHONUNBUFFERED=1
@@ -12,8 +13,8 @@ export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:T
 export WANDB_DIR="${WANDB_DIR:-$ROOT/wandb_cache}"
 mkdir -p "$WANDB_DIR" logs results
 
-BASELINE_METRICS="${BASELINE_METRICS:-/root/autodl-tmp/small_try/runs/fast_dot/metrics.json}"
-DATA_TSV="${DATA_TSV:-/root/autodl-tmp/small_try/data/corpus_50k.tsv}"
+BASELINE_METRICS="${BASELINE_METRICS:-$REPO/runs/fast_dot/metrics.json}"
+DATA_TSV="${DATA_TSV:-$REPO/small_try/data/corpus_50k.tsv}"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
@@ -63,32 +64,33 @@ EXTRA=()
 BATCH_OPT=()
 [[ -n "${TRAIN_BATCH_SIZE:-}" ]] && BATCH_OPT+=(--batch-size "$TRAIN_BATCH_SIZE")
 
-log "[1/3] 单头 + dot_product -> runs/head_1h_dot/（W&B project=attention-small, group=head-ablation, max_steps=$MAXS）"
+log "[1/3] 单头 + dot_product -> ${REPO}/runs/head_1h_dot/（W&B project=attention-small-2, group=head-ablation, max_steps=$MAXS）"
 python train.py --attention dot_product --n-heads 1 --name head_1h_dot --max-steps "$MAXS" "${EXTRA[@]}" "${BATCH_OPT[@]}"
 
 log "[2/3] 对比 report_head.txt（基线 + 单头点积，两列）"
 python compare_head_runs.py \
   --baseline "$BASELINE_METRICS" \
-  --one-dot "$ROOT/runs/head_1h_dot/metrics.json" \
+  --one-dot "$REPO/runs/head_1h_dot/metrics.json" \
   --out "$ROOT/report_head.txt" \
   --json-bundle "$ROOT/results/bundle_head_metrics.json"
 
 log "[3/3] manifest_head.json"
-small_head_root="$ROOT" BASELINE_METRICS="$BASELINE_METRICS" python - << 'PY'
+small_head_root="$ROOT" REPO="$REPO" BASELINE_METRICS="$BASELINE_METRICS" python - << 'PY'
 import json, os, time
 from pathlib import Path
 root = Path(os.environ["small_head_root"])
+repo = Path(os.environ["REPO"])
 bl = Path(os.environ["BASELINE_METRICS"])
 m = {
     "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     "baseline_metrics_path": str(bl.resolve()),
-    "data_path": str(root.parent / "small_try/data/corpus_50k.tsv"),
+    "data_path": str(repo / "small_try/data/corpus_50k.tsv"),
     "report": str(root / "report_head.txt"),
     "bundle": str(root / "results/bundle_head_metrics.json"),
     "param_counts": str(root / "results/param_counts.json"),
     "runs": {
         "baseline_mh_dot": str(bl.parent),
-        "head_1h_dot": str(root / "runs/head_1h_dot"),
+        "head_1h_dot": str(repo / "runs/head_1h_dot"),
     },
 }
 (root / "results" / "manifest_head.json").write_text(json.dumps(m, indent=2), encoding="utf-8")

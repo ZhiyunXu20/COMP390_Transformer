@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
-"""从全量 EN-FR.txt 截取前 N 条有效句对，供 small_try 使用（不修改原文件）。"""
+"""从全量 EN-FR.txt 截取前 N 条有效句对（first-N，非随机）。
+
+科学划分 train/val/test、去重与可复现抽样请用仓库根目录：
+``python scripts/create_splits.py ...``
+"""
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
-DEFAULT_SRC = "/root/autodl-tmp/data/EN-FR.txt"
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_SRC = str(_REPO_ROOT / "data" / "EN-FR.txt")
 DEFAULT_OUT = Path(__file__).resolve().parent / "data" / "corpus_50k.tsv"
 
 

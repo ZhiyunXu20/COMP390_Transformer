@@ -31,6 +31,15 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 from mt_eval import evaluate_generation_corpus, flatten_extra_for_log
+from train_runtime import (
+    PATH_FIELDS_DEFAULT,
+    apply_shared_cli_to_config,
+    git_commit_and_dirty,
+    infer_repo_root,
+    materialize_path_fields,
+    register_shared_cli_arguments,
+    save_resolved_config_json,
+)
 
 
 def set_seed(seed: int) -> None:
@@ -87,6 +96,8 @@ def save_metrics_json(
     run_display_name: str | None = None,
     bleu_eval_meta: dict | None = None,
     final_extra_metrics: dict[str, float | None] | None = None,
+    git_commit: str | None = None,
+    git_dirty: bool | None = None,
 ) -> None:
     def jsonable(obj):
         if isinstance(obj, (str, int, float, bool)) or obj is None:
@@ -99,12 +110,19 @@ def save_metrics_json(
         "translation_direction": "fr_en",
         "swap_parallel_columns": getattr(cfg, "swap_parallel_columns", False),
         "attention_type": cfg.attention_type,
+        "n_heads": cfg.n_heads,
+        "eval_split": getattr(cfg, "eval_split", "val"),
+        "git_commit": git_commit,
+        "git_dirty": git_dirty,
         "final_val_loss": final_val_loss,
         "final_bleu": final_bleu,
         "best_bleu_during_training": best_bleu,
         "optimizer_steps": optimizer_step,
         "global_steps": global_step,
         "data_path": cfg.data_path,
+        "train_path": getattr(cfg, "train_path", cfg.data_path),
+        "val_path": getattr(cfg, "val_path", None),
+        "test_path": getattr(cfg, "test_path", None),
         "d_model": cfg.d_model,
         "n_layers": cfg.n_layers,
         "max_steps": cfg.max_steps,
@@ -122,30 +140,15 @@ def save_metrics_json(
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="small_swap 法→英 训练（默认点积；加性需显式开启）")
-    p.add_argument(
-        "--attention",
-        type=str,
-        default="dot_product",
-        choices=("dot_product", "additive"),
-    )
+    register_shared_cli_arguments(p)
     p.add_argument(
         "--allow-additive-attention",
         action="store_true",
         help="允许使用加性注意力（默认关闭；模型仍保留 additive 实现）",
     )
-    p.add_argument("--output-dir", type=str, default=None)
-    p.add_argument("--no-wandb", action="store_true")
     p.add_argument("--epochs", type=int, default=None)
-    p.add_argument("--batch-size", type=int, default=None)
     p.add_argument("--name", type=str, default=None)
-    p.add_argument("--max-steps", type=int, default=None)
     p.add_argument("--val-every", type=int, default=None)
-    p.add_argument(
-        "--data-path",
-        type=str,
-        default=None,
-        help="覆盖 config.data_path（用于测试或自定义子语料）",
-    )
     p.add_argument(
         "--no-attention-plots",
         action="store_true",
@@ -162,34 +165,44 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
     cfg = Config()
-    if args.attention == "additive" and not args.allow_additive_attention:
+    proposed_att = (
+        args.attention_type if args.attention_type is not None else cfg.attention_type
+    )
+    _additive_family = frozenset({"additive", "gated_dot_additive"})
+    if proposed_att in _additive_family and not args.allow_additive_attention:
         print(
-            "错误: 本目录默认仅做点积实验。若需加性注意力，请追加 --allow-additive-attention",
+            "错误: 本目录默认仅做点积实验。若需加性或门控加性注意力，请追加 --allow-additive-attention",
             file=sys.stderr,
         )
         raise SystemExit(2)
-    cfg.attention_type = args.attention  # type: ignore[assignment]
-    if args.output_dir:
-        cfg.output_dir = args.output_dir
-    if args.no_wandb:
-        cfg.use_wandb = False
-    if args.epochs is not None:
-        cfg.epochs = args.epochs
-    if args.batch_size is not None:
-        cfg.batch_size = args.batch_size
-    if args.name:
-        cfg.wandb_run_name = args.name
-    if args.max_steps is not None:
-        cfg.max_steps = args.max_steps
-    if args.val_every is not None:
-        cfg.val_every = args.val_every
-    if args.data_path is not None:
-        cfg.data_path = args.data_path
     if args.no_attention_plots:
         cfg.wandb_log_attention = False
     if args.eval_light:
         cfg.eval_use_bertscore = False
         cfg.eval_use_comet = False
+    apply_shared_cli_to_config(cfg, args)
+    if args.epochs is not None:
+        cfg.epochs = args.epochs
+    if args.name:
+        cfg.wandb_run_name = args.name
+    if args.val_every is not None:
+        cfg.val_every = args.val_every
+
+    repo_root = infer_repo_root(Path(__file__))
+    materialize_path_fields(cfg, repo_root, PATH_FIELDS_DEFAULT)
+    if cfg.d_model % cfg.n_heads != 0:
+        print(
+            f"错误: d_model={cfg.d_model} 必须能被 n_heads={cfg.n_heads} 整除",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+    if getattr(cfg, "eval_split", "val") == "test":
+        print(
+            "警告: eval_split=test：训练中周期性验证/BLEU 与 best.pt 选择将基于 test.tsv，易造成泄漏。"
+            " 请将 eval_split 设为 val，并使用仓库根目录 evaluate_test.py 对独立 test.tsv 做最终评估。",
+            file=sys.stderr,
+        )
 
     set_seed(cfg.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -206,6 +219,7 @@ def main():
     run_name = cfg.wandb_run_name or f"{cfg.attention_type}_{int(time.time())}"
     out = Path(cfg.output_dir) / run_name
     out.mkdir(parents=True, exist_ok=True)
+    save_resolved_config_json(out, cfg, repo_root, argv=sys.argv)
 
     if cfg.use_wandb and wandb is not None:
         wb_kw: dict = {"project": cfg.project_name, "name": run_name, "config": {**cfg.__dict__}}
@@ -217,7 +231,7 @@ def main():
         print("wandb 未安装，跳过", file=sys.stderr)
 
     train_ds = TabParallelDataset(cfg, src_tok, tgt_tok, "train")
-    val_ds = TabParallelDataset(cfg, src_tok, tgt_tok, "val")
+    eval_ds = TabParallelDataset(cfg, src_tok, tgt_tok, cfg.eval_split)
 
     train_loader = DataLoader(
         train_ds,
@@ -228,8 +242,8 @@ def main():
         collate_fn=lambda b: collate_batch(b, pad_idx),
         persistent_workers=cfg.num_workers > 0,
     )
-    val_loader = DataLoader(
-        val_ds,
+    eval_loader = DataLoader(
+        eval_ds,
         batch_size=min(cfg.batch_size, 256),
         shuffle=False,
         num_workers=cfg.num_workers,
@@ -277,11 +291,11 @@ def main():
                 accum = 0
 
                 if optimizer_step % cfg.val_every == 0:
-                    vloss = validation_loss(model, val_loader, pad_idx, device)
+                    vloss = validation_loss(model, eval_loader, pad_idx, device)
                     bleu_diag: dict = {}
                     bleu, extra_m = evaluate_generation_corpus(
                         model,
-                        val_loader,
+                        eval_loader,
                         src_tok,
                         tgt_tok,
                         pad_idx,
@@ -426,11 +440,11 @@ def main():
     )
 
     print("最终评估（用于报告）…")
-    final_vloss = validation_loss(model, val_loader, pad_idx, device, desc="final_val")
+    final_vloss = validation_loss(model, eval_loader, pad_idx, device, desc="final_val")
     final_bleu_diag: dict = {}
     final_bleu, final_extra = evaluate_generation_corpus(
         model,
-        val_loader,
+        eval_loader,
         src_tok,
         tgt_tok,
         pad_idx,
@@ -472,6 +486,7 @@ def main():
         log_final.update(flatten_extra_for_log(final_extra))
         wandb.log(log_final)
         wandb.finish()
+    gc, gd = git_commit_and_dirty(repo_root)
     save_metrics_json(
         out / "metrics.json",
         cfg,
@@ -484,6 +499,8 @@ def main():
         run_display_name=run_name,
         bleu_eval_meta=final_bleu_diag,
         final_extra_metrics=final_extra,
+        git_commit=gc,
+        git_dirty=gd,
     )
 
 

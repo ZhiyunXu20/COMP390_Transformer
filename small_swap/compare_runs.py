@@ -26,7 +26,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument(
         "--dot",
-        default="/root/autodl-tmp/small_swap/runs/swap_fr_dot/metrics.json",
+        default=str(Path(__file__).resolve().parent.parent / "runs" / "swap_fr_dot" / "metrics.json"),
         help="点积注意力 run 的 metrics.json",
     )
     p.add_argument(
@@ -36,12 +36,12 @@ def main():
     )
     p.add_argument(
         "--out",
-        default="/root/autodl-tmp/small_swap/report_swap.txt",
+        default=str(Path(__file__).resolve().parent.parent / "small_swap" / "report_swap.txt"),
         help="输出报告路径",
     )
     p.add_argument(
         "--json-bundle",
-        default="/root/autodl-tmp/small_swap/results/bundle_swap_metrics.json",
+        default=str(Path(__file__).resolve().parent.parent / "small_swap" / "results" / "bundle_swap_metrics.json"),
         help="合并 metrics.json 的路径（便于归档）",
     )
     args = p.parse_args()

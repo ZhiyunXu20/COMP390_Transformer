@@ -9,7 +9,7 @@ cd "$ROOT"
 export PYTHONUNBUFFERED=1
 export PYTHONFAULTHANDLER=1
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
-# W&B project=attention-small，group=try-en-fr（见 config）
+# W&B project=attention-small-2，group=try-en-fr（见 config）
 export WANDB_DIR="${WANDB_DIR:-$ROOT/wandb_cache}"
 mkdir -p "$WANDB_DIR" logs results
 
@@ -30,7 +30,7 @@ EXTRA=()
 BATCH_OPT=()
 [[ -n "${TRAIN_BATCH_SIZE:-}" ]] && BATCH_OPT+=(--batch-size "$TRAIN_BATCH_SIZE")
 
-log "[2/5] 训练 dot_product → runs/fast_dot/（W&B project=attention-small, max_steps=$MAXS）"
+log "[2/5] 训练 dot_product → runs/fast_dot/（W&B project=attention-small-2, max_steps=$MAXS）"
 python train.py --attention dot_product --name fast_dot --max-steps "$MAXS" "${EXTRA[@]}" "${BATCH_OPT[@]}"
 
 log "[3/5] 训练 additive → runs/fast_add/"

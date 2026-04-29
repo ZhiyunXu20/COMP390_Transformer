@@ -55,9 +55,10 @@ def _ok(name: str, value: object | None) -> bool:
 def main() -> int:
     from mt_eval import (
         score_comet,
+        score_bertscore_f1,
         score_corpus_bleu,
         score_corpus_chrf,
-        score_bertscore_f1,
+        score_corpus_chrfpp,
     )
 
     # 目标语法语 dummy（对应 small_try / small_head：eval_bertscore_lang=fr）
@@ -75,13 +76,16 @@ def main() -> int:
 
     fails: list[str] = []
 
-    print("=== BLEU / chrF++（sacrebleu，无 HF 权重）===", flush=True)
+    print("=== BLEU / chrF / chrF++（sacrebleu，无 HF 权重）===", flush=True)
     b = score_corpus_bleu(hyps_fr, refs_fr)
     c = score_corpus_chrf(hyps_fr, refs_fr)
+    cpp = score_corpus_chrfpp(hyps_fr, refs_fr)
     if not _ok("corpus_bleu (fr dummy)", b):
         fails.append("bleu")
-    if not _ok("corpus_chrf (fr dummy)", c):
+    if not _ok("corpus_chrf (word_order=0, fr dummy)", c):
         fails.append("chrf")
+    if not _ok("corpus_chrfpp (word_order=2, fr dummy)", cpp):
+        fails.append("chrfpp")
 
     # 轻量：多语 DistilBERT，覆盖 fr 语义；与「仅英文 distilbert」不同
     fr_model = "distilbert-base-multilingual-cased"

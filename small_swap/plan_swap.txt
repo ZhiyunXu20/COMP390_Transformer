@@ -1,6 +1,0 @@
-small_swap：与 small_try 同规模，训练方向 法→英
-
-- 语料：与 small_try 相同 EN\tFR TSV；Dataset 交换列，分词器 src=法、tgt=英。
-- 默认仅点积训练；加性需 train.py --allow-additive-attention。
-- W&B：project attention-small，group swap-fr-en。
-- 预估墙钟：单次 dot 约 50–65 分钟（与 small_try 同 GPU 量级）。

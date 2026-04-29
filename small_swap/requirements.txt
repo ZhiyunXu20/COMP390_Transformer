@@ -1,4 +1,5 @@
 torch>=2.4
+entmax>=0.1
 tokenizers>=0.15
 sacrebleu>=2.4
 bert-score>=0.3.13

@@ -1,0 +1,23 @@
+{
+  "source_path": "/root/autodl-tmp/data/EN-FR.txt",
+  "sample_size": 50000,
+  "sampled_pairs_used": 50000,
+  "unique_pairs_before_sample": 2312116,
+  "seed": 42,
+  "train_ratio": 0.9,
+  "val_ratio": 0.05,
+  "test_ratio": 0.05,
+  "sizes": {
+    "train": 45000,
+    "val": 2500,
+    "test": 2500
+  },
+  "sha256": {
+    "train.tsv": "a1e1e2954bf03d271d82b03543b1ba7aa15957ad71efe36d37f4ea6193d99514",
+    "val.tsv": "c93c11ecf37047ae91c28499db7503fdd661b97b08c821ab2d935e5300d686b8",
+    "test.tsv": "37cefdd4f23971895d78c90c53bbe2d532ed1808b4de83c98fafb43a472655be"
+  },
+  "malformed_lines_discarded": 9,
+  "duplicate_pairs_removed": 1416853,
+  "creation_timestamp_utc": "2026-04-29T00:52:42.547738+00:00"
+}

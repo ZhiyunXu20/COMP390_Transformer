@@ -30,16 +30,19 @@ def n_heads_of(m: dict):
     return cfg.get("n_heads")
 
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument(
         "--baseline",
-        default="/root/autodl-tmp/small_try/runs/fast_dot/metrics.json",
-        help="多头 n_heads=4 + dot_product（small_try fast_dot）",
+        default=str(_REPO_ROOT / "runs" / "fast_dot" / "metrics.json"),
+        help="多头 n_heads=4 + dot_product（small_try 等在仓库 runs/ 下的训练输出）",
     )
     p.add_argument(
         "--one-dot",
-        default="/root/autodl-tmp/small_head/runs/head_1h_dot/metrics.json",
+        default=str(_REPO_ROOT / "runs" / "head_1h_dot" / "metrics.json"),
         help="单头 n_heads=1 + dot_product",
     )
     p.add_argument(
@@ -47,10 +50,13 @@ def main() -> None:
         default=None,
         help="可选：单头 n_heads=1 + additive 的 metrics（未跑加性时可省略）",
     )
-    p.add_argument("--out", default="/root/autodl-tmp/small_head/report_head.txt")
+    p.add_argument(
+        "--out",
+        default=str(_REPO_ROOT / "small_head" / "report_head.txt"),
+    )
     p.add_argument(
         "--json-bundle",
-        default="/root/autodl-tmp/small_head/results/bundle_head_metrics.json",
+        default=str(_REPO_ROOT / "small_head" / "results" / "bundle_head_metrics.json"),
     )
     args = p.parse_args()
 

@@ -1,24 +1,44 @@
-"""small_swap：法 → 英（与 small_try 同架构，语料列与分词器对调）。"""
+"""small_swap：法 → 英（与 small_try 同架构，语料列与分词器对调）。
+
+路径默认为相对仓库根目录。
+"""
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal
 
-AttentionType = Literal["dot_product", "additive"]
+AttentionType = Literal[
+    "dot_product",
+    "additive",
+    "bilinear",
+    "gated_dot_additive",
+    "local_window",
+    "global_local",
+    "sparsemax",
+    "entmax15",
+]
+EvalSplit = Literal["train", "val", "test"]
 
 
 @dataclass
 class Config:
     """
-    语料 TSV 仍为「英 \\t 法」两列（与 small_try 同源）；`swap_parallel_columns=True` 时
+    语料 TSV 仍为「英 \\t 法」两列（与划分脚本一致）；`swap_parallel_columns=True` 时
     训练方向为：编码器读法语、解码器生成英语。
     """
 
-    data_path: str = "/root/autodl-tmp/small_swap/data/corpus_50k.tsv"
-    tokenizer_src: str = "/root/autodl-tmp/data/tokenizer_tgt.json"
-    tokenizer_tgt: str = "/root/autodl-tmp/data/tokenizer_src.json"
+    # 相对仓库根（train_runtime.materialize_path_fields）
+    train_path: str = "data/splits/en_fr_50k_seed42/train.tsv"
+    val_path: str = "data/splits/en_fr_50k_seed42/val.tsv"
+    test_path: str = "data/splits/en_fr_50k_seed42/test.tsv"
+    data_path: str = "data/splits/en_fr_50k_seed42/train.tsv"
 
-    src_vocab_size: int = 32000
-    tgt_vocab_size: int = 32000
+    tokenizer_src: str = "data/tokenizer_tgt_train_only.json"
+    tokenizer_tgt: str = "data/tokenizer_src_train_only.json"
+
+    src_vocab_size: int = 30000
+    tgt_vocab_size: int = 30000
 
     max_seq_len: int = 96
 
@@ -29,6 +49,11 @@ class Config:
     dropout: float = 0.1
 
     additive_d_hidden: int = 256
+
+    local_window_size: int = 4
+    global_local_window_size: int = 4
+    global_tokens: int = 4
+    gate_alpha_per_head: bool = True
 
     learning_rate: float = 3e-4
     weight_decay: float = 0.01
@@ -46,15 +71,19 @@ class Config:
     max_gen_len: int = 64
 
     val_ratio: float = 0.05
+    test_ratio: float = 0.05
+    use_split_files: bool = True
 
     attention_type: AttentionType = "dot_product"
 
     swap_parallel_columns: bool = True
 
+    eval_split: EvalSplit = "val"
+
     seed: int = 42
     num_workers: int = 8
-    output_dir: str = "/root/autodl-tmp/small_swap/runs"
-    project_name: str = "attention-small"
+    output_dir: str = "runs"
+    project_name: str = "attention-small-2"
     use_wandb: bool = True
     wandb_run_name: str | None = None
     wandb_group: str | None = "swap-fr-en"

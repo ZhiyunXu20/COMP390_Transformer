@@ -1,10 +1,11 @@
 """
-共享机器翻译评估：BLEU（调用方或本模块）、chrF++、可选 BERTScore / COMET。
+共享机器翻译评估：BLEU（SacreBLEU）、chrF / chrF++、可选 BERTScore / COMET。
 与各项目 train.py 中的 greedy 采样逻辑一致，并复用「跳过退化句对」规则。
 """
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 from difflib import SequenceMatcher
@@ -66,12 +67,17 @@ def collect_greedy_predictions(
     skip_identical_parallel: bool = True,
     similarity_threshold: float | None = 0.98,
     out_diag: dict | None = None,
-) -> tuple[list[str], list[str], list[str]]:
-    """返回 (hyps, refs, srcs) 字符串列表，对齐同一条样本。"""
+) -> tuple[list[str], list[str], list[str], list[dict[str, Any]]]:
+    """返回 (hyps, refs, srcs, prediction_records)。
+
+    prediction_records 每项含 id、src、ref、hyp；跳过解码时用 hyp=""，skipped_reason 为非空字符串。
+    """
     model.eval()
     hyps: list[str] = []
     refs: list[str] = []
     srcs: list[str] = []
+    prediction_records: list[dict[str, Any]] = []
+    row_id = -1
     n_collected = 0
     skipped_identical = 0
     skipped_similar = 0
@@ -81,6 +87,7 @@ def collect_greedy_predictions(
         for bi in range(src.size(0)):
             if n_collected >= max_samples:
                 break
+            row_id += 1
             src_ids = [t for t in src[bi].tolist() if t != pad_idx]
             ref_ids = [t for t in tgt[bi].tolist() if t not in (pad_idx,)]
             ref_ids_clean = [t for t in ref_ids if t not in (bos_id, eos_id)]
@@ -97,6 +104,15 @@ def collect_greedy_predictions(
                     skipped_identical += 1
                 else:
                     skipped_similar += 1
+                prediction_records.append(
+                    {
+                        "id": row_id,
+                        "src": src_str,
+                        "ref": ref_str,
+                        "hyp": "",
+                        "skipped_reason": reason,
+                    }
+                )
                 continue
             gen = model.greedy_decode(
                 src[bi : bi + 1], bos_id, eos_id, max_gen_len
@@ -107,8 +123,18 @@ def collect_greedy_predictions(
             while hyp_ids and hyp_ids[-1] == eos_id:
                 hyp_ids.pop(-1)
             refs.append(ref_str)
-            hyps.append(tgt_tok.decode(hyp_ids))
+            hyp_str = tgt_tok.decode(hyp_ids)
+            hyps.append(hyp_str)
             srcs.append(src_str)
+            prediction_records.append(
+                {
+                    "id": row_id,
+                    "src": src_str,
+                    "ref": ref_str,
+                    "hyp": hyp_str,
+                    "skipped_reason": "",
+                }
+            )
             n_collected += 1
         if n_collected >= max_samples:
             break
@@ -122,22 +148,61 @@ def collect_greedy_predictions(
             out_diag["bleu_exact_string_match_rate"] = exact / max(1, len(hyps))
         else:
             out_diag["bleu_exact_string_match_rate"] = 0.0
-    return hyps, refs, srcs
+    return hyps, refs, srcs, prediction_records
+
+
+def _signature_to_jsonable(sig: Any) -> dict[str, Any]:
+    """将 SacreBLEU Signature 转为可 JSON 序列化的字典（含 format 与各分项）。"""
+    fmt = sig.format()
+    raw = getattr(sig, "info", {})
+    info_out: dict[str, Any] = {}
+    for k, v in raw.items():
+        if isinstance(v, (str, int, float, bool)) or v is None:
+            info_out[str(k)] = v
+        else:
+            info_out[str(k)] = str(v)
+    return {"format": fmt, "info": info_out}
+
+
+def _bleu_score_and_signature(
+    hyps: list[str], refs: list[str]
+) -> tuple[float | None, dict[str, Any] | None]:
+    """single-reference corpus BLEU，并附带 SacreBLEU signature。"""
+    if sacrebleu is None or not hyps:
+        return None, None
+    from sacrebleu.metrics import BLEU
+
+    metric = BLEU()
+    cs = metric.corpus_score(hyps, [refs])
+    sig = _signature_to_jsonable(metric.get_signature())
+    return float(cs.score), sig
 
 
 def score_corpus_bleu(hyps: list[str], refs: list[str]) -> float | None:
+    """Corpus BLEU（单参考）：``sacrebleu.corpus_bleu(hyps, [refs])``。"""
     if sacrebleu is None or not hyps:
         return None
-    return float(sacrebleu.corpus_bleu(hyps, [[r] for r in refs]).score)
+    return float(sacrebleu.corpus_bleu(hyps, [refs]).score)
 
 
 def score_corpus_chrf(hyps: list[str], refs: list[str]) -> float | None:
+    """chrF（字符级；word_order=0），非 chrF++。"""
     if sacrebleu is None or not hyps:
         return None
     from sacrebleu.metrics import CHRF
 
-    chrf = CHRF()
-    return float(chrf.corpus_score(hyps, [[r] for r in refs]).score)
+    metric = CHRF(word_order=0)
+    return float(metric.corpus_score(hyps, [refs]).score)
+
+
+def score_corpus_chrfpp(hyps: list[str], refs: list[str]) -> float | None:
+    """chrF++（word_order=2）。"""
+    if sacrebleu is None or not hyps:
+        return None
+    from sacrebleu.metrics import CHRF
+
+    metric = CHRF(word_order=2)
+    return float(metric.corpus_score(hyps, [refs]).score)
 
 
 _comet_model = None
@@ -265,6 +330,16 @@ def score_bertscore_f1(
         return None
 
 
+def _chrf_score_signature(
+    word_order: int, hyps: list[str], refs: list[str]
+) -> tuple[float, dict[str, Any]]:
+    from sacrebleu.metrics import CHRF
+
+    metric = CHRF(word_order=word_order)
+    cs = metric.corpus_score(hyps, [refs])
+    return float(cs.score), _signature_to_jsonable(metric.get_signature())
+
+
 def compute_extra_metrics(
     hyps: list[str],
     refs: list[str],
@@ -281,29 +356,58 @@ def compute_extra_metrics(
     comet_model: str = "Unbabel/wmt22-comet-da",
     comet_gpus: int | None = None,
     force_heavy: bool = False,
-) -> dict[str, float | None]:
+) -> dict[str, Any]:
     """
     heavy_every: 仅当 optimizer_step % heavy_every == 0 时计算 BERTScore/COMET；
     None 表示每次与 BLEU 同跑（慎用）。
     force_heavy: 为 True 时忽略步数间隔（用于训练结束时的最终评估）。
     """
-    out: dict[str, float | None] = {}
-    if use_chrf:
-        out["chrf"] = score_corpus_chrf(hyps, refs)
+    out: dict[str, Any] = {}
+    if use_chrf and hyps:
+        s0, sig0 = _chrf_score_signature(0, hyps, refs)
+        s2, sig2 = _chrf_score_signature(2, hyps, refs)
+        out["chrf"] = s0
+        out["chrfpp"] = s2
+        out["chrf_signature"] = sig0
+        out["chrfpp_signature"] = sig2
+    elif use_chrf:
+        out["chrf"] = None
+        out["chrfpp"] = None
+        out["chrf_signature"] = None
+        out["chrfpp_signature"] = None
     else:
         out["chrf"] = None
+        out["chrfpp"] = None
+        out["chrf_signature"] = None
+        out["chrfpp_signature"] = None
 
     run_heavy = force_heavy or heavy_every is None or (optimizer_step % heavy_every == 0)
+    out["bertscore_status"] = "not_run"
+    out["bertscore_error"] = None
+    out["bertscore_f1"] = None
+
     if use_bertscore and run_heavy:
-        out["bertscore_f1"] = score_bertscore_f1(
-            hyps,
-            refs,
-            lang=bertscore_lang,
-            model_type=bertscore_model_type,
-            device=bertscore_device,
-        )
-    else:
-        out["bertscore_f1"] = None
+        try:
+            bs = score_bertscore_f1(
+                hyps,
+                refs,
+                lang=bertscore_lang,
+                model_type=bertscore_model_type,
+                device=bertscore_device,
+            )
+            if bs is not None:
+                out["bertscore_f1"] = bs
+                out["bertscore_status"] = "ok"
+            else:
+                out["bertscore_status"] = "failed"
+                out["bertscore_error"] = (
+                    "BERTScore returned None (missing dependency, bad env, or scoring failure; see stderr)."
+                )
+        except Exception as e:
+            out["bertscore_status"] = "failed"
+            out["bertscore_error"] = str(e)
+    elif use_bertscore:
+        out["bertscore_status"] = "not_run"
 
     if use_comet and run_heavy and len(srcs) == len(hyps):
         out["comet"] = score_comet(
@@ -313,6 +417,17 @@ def compute_extra_metrics(
         out["comet"] = None
 
     return out
+
+
+def _write_predictions_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        for rec in records:
+            row = dict(rec)
+            sr = row.get("skipped_reason")
+            if sr == "":
+                row["skipped_reason"] = None
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
 def eval_sys_path_for_mt_eval(train_file: Path) -> None:
@@ -350,12 +465,16 @@ def evaluate_generation_corpus(
     comet_gpus: int | None = None,
     force_heavy: bool = False,
     out_diag: dict | None = None,
-) -> tuple[float | None, dict[str, float | None]]:
+    predictions_jsonl_path: Path | None = None,
+) -> tuple[float | None, dict[str, Any]]:
     """
-    一次 greedy 采样后计算 BLEU + chrF++/BERTScore/COMET。
-    返回 (bleu, extra)；extra 含 chrf、bertscore_f1、comet（未算则为 None）。
+    一次 greedy 采样后计算 BLEU、chrF、chrF++、可选 BERTScore/COMET。
+    返回 (bleu, extra)；extra 含 chrf、chrfpp、签名、bertscore_status 等。
+
+    ``force_heavy=True``（训练结束终评）时写出 ``predictions_jsonl_path``
+    （默认当前工作目录 ``predictions.jsonl``）：每行 JSON 含 id、src、ref、hyp、skipped_reason。
     """
-    hyps, refs, srcs = collect_greedy_predictions(
+    hyps, refs, srcs, prediction_records = collect_greedy_predictions(
         model,
         loader,
         src_tok,
@@ -370,7 +489,7 @@ def evaluate_generation_corpus(
         similarity_threshold=similarity_threshold,
         out_diag=out_diag,
     )
-    bleu = score_corpus_bleu(hyps, refs)
+    bleu, bleu_sig = _bleu_score_and_signature(hyps, refs)
     extra = compute_extra_metrics(
         hyps,
         refs,
@@ -387,11 +506,95 @@ def evaluate_generation_corpus(
         comet_gpus=comet_gpus,
         force_heavy=force_heavy,
     )
+    extra["bleu_signature"] = bleu_sig
+    if force_heavy:
+        out_p = predictions_jsonl_path or Path("predictions.jsonl")
+        _write_predictions_jsonl(out_p, prediction_records)
     return bleu, extra
 
 
+@torch.no_grad()
+def collect_predictions_no_skip_full(
+    model: nn.Module,
+    loader: DataLoader,
+    src_tok: Any,
+    tgt_tok: Any,
+    pad_idx: int,
+    bos_id: int,
+    eos_id: int,
+    device: torch.device,
+    max_gen_len: int,
+) -> tuple[list[str], list[str], list[str], list[dict[str, Any]]]:
+    """测试集终评：对 loader 中每个样本做 greedy 解码，**不**应用 identical/similarity 跳过逻辑。"""
+    model.eval()
+    hyps: list[str] = []
+    refs: list[str] = []
+    srcs: list[str] = []
+    rows: list[dict[str, Any]] = []
+    for src, tgt in loader:
+        src = src.to(device, non_blocking=True)
+        tgt = tgt.to(device, non_blocking=True)
+        for bi in range(src.size(0)):
+            src_ids = [t for t in src[bi].tolist() if t != pad_idx]
+            ref_ids = [t for t in tgt[bi].tolist() if t not in (pad_idx,)]
+            ref_ids_clean = [t for t in ref_ids if t not in (bos_id, eos_id)]
+            ref_str = tgt_tok.decode(ref_ids_clean)
+            src_str = src_tok.decode(src_ids)
+            gen = model.greedy_decode(src[bi : bi + 1], bos_id, eos_id, max_gen_len)
+            hyp_ids = gen[0].tolist()
+            while hyp_ids and hyp_ids[0] == bos_id:
+                hyp_ids.pop(0)
+            while hyp_ids and hyp_ids[-1] == eos_id:
+                hyp_ids.pop(-1)
+            hyp_str = tgt_tok.decode(hyp_ids)
+            hyps.append(hyp_str)
+            refs.append(ref_str)
+            srcs.append(src_str)
+            rows.append(
+                {
+                    "source": src_str,
+                    "reference": ref_str,
+                    "hypothesis": hyp_str,
+                    "source_length": len(src_str),
+                    "reference_length": len(ref_str),
+                    "hypothesis_length": len(hyp_str),
+                }
+            )
+    model.train()
+    return hyps, refs, srcs, rows
+
+
+def exact_match_rate(hyps: list[str], refs: list[str]) -> float | None:
+    if not hyps:
+        return None
+    return sum(1 for h, r in zip(hyps, refs) if h == r) / max(1, len(hyps))
+
+
+def average_length_ratio(hyps: list[str], refs: list[str]) -> float | None:
+    """mean(|hyp| / max(|ref|, 1))，按 UTF-8 字符长度。"""
+    if not hyps:
+        return None
+    ratios: list[float] = []
+    for h, r in zip(hyps, refs):
+        lr = max(1, len(r))
+        ratios.append(len(h) / lr)
+    return sum(ratios) / max(1, len(ratios))
+
+
 def flatten_extra_for_log(
-    extra: dict[str, float | None], prefix: str = "metrics"
-) -> dict[str, float]:
-    """供 W&B / 打印：去掉 None。"""
-    return {f"{prefix}/{k}": float(v) for k, v in extra.items() if v is not None}
+    extra: dict[str, Any], prefix: str = "metrics"
+) -> dict[str, Any]:
+    """供 W&B：记录标量指标与 bertscore_status 等字符串；*_signature 嵌套 dict 不展开。"""
+    out: dict[str, Any] = {}
+    for k, v in extra.items():
+        if v is None:
+            continue
+        if isinstance(v, dict) and k.endswith("_signature"):
+            continue
+        if isinstance(v, (int, float)):
+            out[f"{prefix}/{k}"] = float(v)
+        elif isinstance(v, str):
+            out[f"{prefix}/{k}"] = v
+        elif isinstance(v, bool):
+            out[f"{prefix}/{k}"] = v
+    return out

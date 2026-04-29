@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-EXTRA_KEYS: tuple[str, ...] = ("chrf", "bertscore_f1", "comet")
+EXTRA_KEYS: tuple[str, ...] = ("chrf", "chrfpp", "bertscore_f1", "comet")
 EXTRA_LABELS: dict[str, str] = {
-    "chrf": "extra: chrF++",
+    "chrf": "extra: chrF",
+    "chrfpp": "extra: chrF++",
     "bertscore_f1": "extra: BERTScore F1",
     "comet": "extra: COMET",
 }

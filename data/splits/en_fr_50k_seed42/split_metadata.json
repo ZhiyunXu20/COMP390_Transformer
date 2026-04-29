@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "sample_size": 50000,
+  "number_of_removed_empty_lines": 368527,
+  "number_of_removed_duplicates": 1121066,
+  "train_size": 45000,
+  "val_size": 2500,
+  "test_size": 2500,
+  "creation_time": "2026-04-29T01:57:24.984996+00:00",
+  "input_file_hash": "8ba29df07eb3df51c5977c00cb9fcf6593dc36d69db085ebbe13bf517e5ce900",
+  "train_file_sha256_for_tokenizers": "16d25ad3d6e61bf3419be60d181c7ba605eb003f82dfa72010807e7b84d6f5d1",
+  "tokenizer_metadata_path": "/root/autodl-tmp/data/tokenizer_metadata.json",
+  "tokenizer_src_json": "/root/autodl-tmp/data/tokenizer_src_train_only.json",
+  "tokenizer_tgt_json": "/root/autodl-tmp/data/tokenizer_tgt_train_only.json"
+}

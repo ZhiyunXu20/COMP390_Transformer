@@ -4,6 +4,7 @@
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$ROOT/.." && pwd)"
 cd "$ROOT"
 
 export PYTHONUNBUFFERED=1
@@ -12,7 +13,7 @@ export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:T
 export WANDB_DIR="${WANDB_DIR:-$ROOT/wandb_cache}"
 mkdir -p "$WANDB_DIR" logs results data
 
-CORPUS_SRC="${CORPUS_SRC:-/root/autodl-tmp/small_try/data/corpus_50k.tsv}"
+CORPUS_SRC="${CORPUS_SRC:-$REPO/small_try/data/corpus_50k.tsv}"
 CORPUS_LOCAL="$ROOT/data/corpus_50k.tsv"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
@@ -56,12 +57,12 @@ EXTRA=()
 BATCH_OPT=()
 [[ -n "${TRAIN_BATCH_SIZE:-}" ]] && BATCH_OPT+=(--batch-size "$TRAIN_BATCH_SIZE")
 
-log "[1/3] dot_product → runs/swap_fr_dot/（W&B project=attention-small, group=swap-fr-en, max_steps=$MAXS）"
+log "[1/3] dot_product → runs/swap_fr_dot/（W&B project=attention-small-2, group=swap-fr-en, max_steps=$MAXS）"
 python train.py --attention dot_product --name swap_fr_dot --max-steps "$MAXS" --data-path "$CORPUS_LOCAL" "${EXTRA[@]}" "${BATCH_OPT[@]}"
 
 log "[2/3] report_swap.txt（单 run；若曾训 additive 可传 --add 路径再跑 compare_runs）"
 python compare_runs.py \
-  --dot "$ROOT/runs/swap_fr_dot/metrics.json" \
+  --dot "$REPO/runs/swap_fr_dot/metrics.json" \
   --out "$ROOT/report_swap.txt" \
   --json-bundle "$ROOT/results/bundle_swap_metrics.json"
 

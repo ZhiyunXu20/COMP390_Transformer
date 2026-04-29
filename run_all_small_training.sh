@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 一键跑完 small_try → small_head → small_swap 全流程训练与报告。
-# 所有训练 run 写入同一 W&B project：attention-small（各包 config.project_name）；
+# 所有训练 run 写入同一 W&B project：attention-small-2（各包 config.project_name）；
 # 用 wandb_group 区分：try-en-fr | head-ablation | swap-fr-en。
 #
 # 用法：
@@ -21,6 +21,13 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+if [[ -f /etc/network_turbo ]]; then
+  # shellcheck source=/dev/null
+  source /etc/network_turbo
+fi
+_turbo_no_proxy="localhost,127.0.0.1,hf-mirror.com,huggingface.co,hf.co,xethub.hf.co"
+export NO_PROXY="${_turbo_no_proxy}${NO_PROXY:+,${NO_PROXY}}"
+export no_proxy="${_turbo_no_proxy}${no_proxy:+,${no_proxy}}"
 # 正式训练默认全量验证（BERTScore/COMET）。仅当本进程环境中 EVAL_LIGHT 恰好为 1 时各子脚本才加 --eval-light。
 # 其它取值或未设置一律清除，避免 shell 里误留的 EVAL_LIGHT=0 等与试跑残留干扰。
 if [[ "${EVAL_LIGHT:-}" != "1" ]]; then
@@ -41,7 +48,7 @@ log "HF_ENDPOINT=$HF_ENDPOINT"
 log "WANDB_MODE=$WANDB_MODE WANDB_DIR=$WANDB_DIR"
 log "TRAIN_BATCH_SIZE=${TRAIN_BATCH_SIZE:-<未设置，使用各 config.batch_size>}"
 log "验证指标: $([[ "${EVAL_LIGHT:-}" == 1 ]] && echo 'EVAL_LIGHT=1 仅 BLEU/chrF++' || echo '全量（BERTScore/COMET，与各 config 一致）')"
-log "W&B project（统一）: attention-small"
+log "W&B project（统一）: attention-small-2"
 log "顺序: small_try (EN→FR dot+add) → small_head (单头) → small_swap (FR→EN dot)"
 python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())" || true
 
@@ -50,4 +57,4 @@ bash "$ROOT/small_head/run_head_pipeline.sh"
 bash "$ROOT/small_swap/run_fr_swap_pipeline.sh"
 
 log "======== 全部 small 流水线成功 ========"
-log "W&B: 打开项目 attention-small，按 Group 筛选各子实验。"
+log "W&B: 打开项目 attention-small-2，按 Group 筛选各子实验。"

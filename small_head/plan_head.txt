@@ -1,6 +1,0 @@
-small_head 实验计划（单头全模型 vs small_try 多头基线）
-
-1. 基线：small_try runs/fast_dot（n_heads=4, dot_product），metrics 只引用不重训。
-2. 本目录只训单头点积 head_1h_dot（默认）；加性为可选（--allow-additive-attention）。
-3. W&B：与 small_try 等同属 project attention-small，group head-ablation。
-4. 预估用时：单次 ~3000 step 与 small_try 同量级，约 50–60 分钟/次（视 GPU 而定）。
