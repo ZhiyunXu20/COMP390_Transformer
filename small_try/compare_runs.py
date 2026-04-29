@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""读取两次 small_try 训练的 metrics.json，生成 report.txt 对比结论。"""
+"""读取两次 small_try 训练的 metrics（或可选 test_eval），生成 report.txt 对比结论。"""
 
 from __future__ import annotations
 
@@ -12,11 +12,13 @@ _ROOT = Path(__file__).resolve().parent.parent
 _REPO_ROOT = _ROOT
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
-from report_extra_metrics import append_extra_conclusion_two, append_extra_rows_two_cols
-
-
-def load_metrics(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+from report_extra_metrics import (
+    append_extra_conclusion_two,
+    append_extra_rows_two_cols,
+    bleu_metric_label,
+    build_extra_metrics_banner_two,
+    load_metrics_compare,
+)
 
 
 def main():
@@ -41,21 +43,34 @@ def main():
         default=str(_REPO_ROOT / "small_try" / "results" / "bundle_metrics.json"),
         help="合并两次 metrics.json 的路径（便于归档）",
     )
+    p.add_argument(
+        "--prefer-test-eval",
+        action="store_true",
+        help="优先读取各 run 的 test_eval/metrics_test.json（held-out test）；"
+        "否则使用 metrics.json，并在标题标注 validation-sampled",
+    )
     args = p.parse_args()
 
     dot_path = Path(args.dot)
     add_path = Path(args.add)
-    if not dot_path.is_file():
-        raise SystemExit(f"缺少 {dot_path}，请先完成 dot_product 训练")
-    if not add_path.is_file():
-        raise SystemExit(f"缺少 {add_path}，请先完成 additive 训练")
-
-    a = load_metrics(dot_path)
-    b = load_metrics(add_path)
+    a, _, prov_a = load_metrics_compare(
+        dot_path, prefer_test_eval=args.prefer_test_eval
+    )
+    b, _, prov_b = load_metrics_compare(
+        add_path, prefer_test_eval=args.prefer_test_eval
+    )
 
     lines = []
     lines.append("=" * 60)
     lines.append("small_try：注意力机制对比（子语料 + 小模型 + 短训练）")
+    if args.prefer_test_eval:
+        lines.append(
+            f"报告标题·数据来源：dot_product={prov_a}；additive={prov_b}"
+        )
+        lines.append(
+            "（held-out test = test_eval/metrics_test.json；"
+            "validation-sampled = 训练 metrics.json / eval_split）"
+        )
     lines.append("=" * 60)
     lines.append("")
     lines.append("说明：本报告用于课程/实验结论；与全数据长训的绝对 BLEU 不可直接等同。")
@@ -83,6 +98,7 @@ def main():
         label_w=28,
         col_a="dot_product",
         col_b="additive",
+        extra_metrics_banner=build_extra_metrics_banner_two(prov_a, prov_b),
     )
     lines.append("")
 
@@ -90,13 +106,25 @@ def main():
     bleu_b = b.get("final_bleu")
     if isinstance(bleu_a, (int, float)) and isinstance(bleu_b, (int, float)):
         diff = bleu_b - bleu_a
-        if diff > 0.5:
-            winner = "加性注意力 (additive) 在本设定下验证 BLEU 更高。"
-        elif diff < -0.5:
-            winner = "缩放点积 (dot_product) 在本设定下验证 BLEU 更高。"
+        mp = bleu_metric_label(prov_a, prov_b)
+        if args.prefer_test_eval:
+            if diff > 0.5:
+                winner = f"加性注意力 (additive) 在本设定下 {mp} 更高。"
+            elif diff < -0.5:
+                winner = f"缩放点积 (dot_product) 在本设定下 {mp} 更高。"
+            else:
+                winner = (
+                    f"二者 {mp} 接近（差距 < 0.5），可写为「相当」或结合 loss 讨论。"
+                )
+            lines.append(f"结论（基于 BLEU / final_bleu；指标口径：{mp}）：")
         else:
-            winner = "二者验证 BLEU 接近（差距 < 0.5），可写为「相当」或结合 loss 讨论。"
-        lines.append("结论（基于 final_bleu）：")
+            if diff > 0.5:
+                winner = "加性注意力 (additive) 在本设定下验证 BLEU 更高。"
+            elif diff < -0.5:
+                winner = "缩放点积 (dot_product) 在本设定下验证 BLEU 更高。"
+            else:
+                winner = "二者验证 BLEU 接近（差距 < 0.5），可写为「相当」或结合 loss 讨论。"
+            lines.append("结论（基于 final_bleu）：")
         lines.append(f"  {winner}")
         lines.append(f"  Δ(BLEU) = additive - dot = {diff:+.4f}")
     else:

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # small_head：仅单头点积训练；多头基线引用 small_try fast_dot metrics。
+# 与 small_try 使用同一 split + train_only tokenizer 协议。
 # 加性注意力仍可在代码中启用：train.py --attention additive --allow-additive-attention
 
 set -euo pipefail
@@ -14,7 +15,13 @@ export WANDB_DIR="${WANDB_DIR:-$ROOT/wandb_cache}"
 mkdir -p "$WANDB_DIR" logs results
 
 BASELINE_METRICS="${BASELINE_METRICS:-$REPO/runs/fast_dot/metrics.json}"
-DATA_TSV="${DATA_TSV:-$REPO/small_try/data/corpus_50k.tsv}"
+
+TRAIN_PATH="${TRAIN_PATH:-data/splits/en_fr_50k_seed42/train.tsv}"
+VAL_PATH="${VAL_PATH:-data/splits/en_fr_50k_seed42/val.tsv}"
+TEST_PATH="${TEST_PATH:-data/splits/en_fr_50k_seed42/test.tsv}"
+TOKENIZER_SRC="${TOKENIZER_SRC:-data/tokenizer_src_train_only.json}"
+TOKENIZER_TGT="${TOKENIZER_TGT:-data/tokenizer_tgt_train_only.json}"
+TOKENIZER_METADATA="${TOKENIZER_METADATA:-data/tokenizer_metadata.json}"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
@@ -25,9 +32,10 @@ on_err() {
 trap 'on_err ${LINENO} $?' ERR
 
 log "======== small_head 流水线开始 ========"
-log "ROOT=$ROOT"
+log "ROOT=$ROOT REPO=$REPO"
 log "BASELINE_METRICS=$BASELINE_METRICS"
-log "DATA_TSV=$DATA_TSV"
+log "划分: train=$TRAIN_PATH val=$VAL_PATH test=$TEST_PATH（相对仓库根）"
+log "tokenizer: src=$TOKENIZER_SRC tgt=$TOKENIZER_TGT meta=$TOKENIZER_METADATA"
 log "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-默认}"
 
 if [[ ! -f "$BASELINE_METRICS" ]]; then
@@ -35,10 +43,16 @@ if [[ ! -f "$BASELINE_METRICS" ]]; then
   log "请先完成 small_try 的 fast_dot，或设置 BASELINE_METRICS 指向有效 metrics.json"
   exit 1
 fi
-if [[ ! -f "$DATA_TSV" ]]; then
-  log "错误: 缺少训练数据: $DATA_TSV"
-  log "请在 small_try 下运行 create_subset 或恢复 corpus_50k.tsv"
-  exit 1
+
+for rel in "$TRAIN_PATH" "$VAL_PATH" "$TEST_PATH" "$TOKENIZER_SRC" "$TOKENIZER_TGT"; do
+  if [[ ! -f "$REPO/$rel" ]]; then
+    log "ERROR: 缺少文件: $REPO/$rel"
+    log "请先运行 scripts/make_splits.py 与 scripts/train_tokenizers_from_train_split.py（见 docs/REPRODUCIBILITY.md）"
+    exit 1
+  fi
+done
+if [[ ! -f "$REPO/$TOKENIZER_METADATA" ]]; then
+  log "WARN: 未找到 $REPO/$TOKENIZER_METADATA（可选；manifest 仍会记录预期路径）"
 fi
 
 python - << 'PY' || exit 1
@@ -65,7 +79,18 @@ BATCH_OPT=()
 [[ -n "${TRAIN_BATCH_SIZE:-}" ]] && BATCH_OPT+=(--batch-size "$TRAIN_BATCH_SIZE")
 
 log "[1/3] 单头 + dot_product -> ${REPO}/runs/head_1h_dot/（W&B project=attention-small-2, group=head-ablation, max_steps=$MAXS）"
-python train.py --attention dot_product --n-heads 1 --name head_1h_dot --max-steps "$MAXS" "${EXTRA[@]}" "${BATCH_OPT[@]}"
+python train.py \
+  --attention dot_product \
+  --n-heads 1 \
+  --name head_1h_dot \
+  --max-steps "$MAXS" \
+  --train-path "$TRAIN_PATH" \
+  --val-path "$VAL_PATH" \
+  --test-path "$TEST_PATH" \
+  --tokenizer-src "$TOKENIZER_SRC" \
+  --tokenizer-tgt "$TOKENIZER_TGT" \
+  "${EXTRA[@]}" \
+  "${BATCH_OPT[@]}"
 
 log "[2/3] 对比 report_head.txt（基线 + 单头点积，两列）"
 python compare_head_runs.py \
@@ -75,22 +100,47 @@ python compare_head_runs.py \
   --json-bundle "$ROOT/results/bundle_head_metrics.json"
 
 log "[3/3] manifest_head.json"
-small_head_root="$ROOT" REPO="$REPO" BASELINE_METRICS="$BASELINE_METRICS" python - << 'PY'
-import json, os, time
+export REPO
+export small_head_root="$ROOT"
+export BASELINE_METRICS
+export HEAD_TRAIN_PATH="$TRAIN_PATH"
+export HEAD_VAL_PATH="$VAL_PATH"
+export HEAD_TEST_PATH="$TEST_PATH"
+export HEAD_TOKENIZER_SRC="$TOKENIZER_SRC"
+export HEAD_TOKENIZER_TGT="$TOKENIZER_TGT"
+export HEAD_TOKENIZER_METADATA="$TOKENIZER_METADATA"
+python - << 'PY'
+import json
+import os
+import time
 from pathlib import Path
+
 root = Path(os.environ["small_head_root"])
-repo = Path(os.environ["REPO"])
-bl = Path(os.environ["BASELINE_METRICS"])
+repo = Path(os.environ["REPO"]).resolve()
+bl = Path(os.environ["BASELINE_METRICS"]).resolve()
+
+def rp(rel: str) -> str:
+    return str((repo / rel).resolve())
+
+split_dir = repo / "data" / "splits" / "en_fr_50k_seed42"
+
 m = {
     "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    "baseline_metrics_path": str(bl.resolve()),
-    "data_path": str(repo / "small_try/data/corpus_50k.tsv"),
-    "report": str(root / "report_head.txt"),
-    "bundle": str(root / "results/bundle_head_metrics.json"),
-    "param_counts": str(root / "results/param_counts.json"),
+    "split_protocol": "train_only_tokenizers",
+    "split_dir": str(split_dir.resolve()),
+    "train_path": rp(os.environ["HEAD_TRAIN_PATH"]),
+    "val_path": rp(os.environ["HEAD_VAL_PATH"]),
+    "test_path": rp(os.environ["HEAD_TEST_PATH"]),
+    "tokenizer_metadata": rp(os.environ["HEAD_TOKENIZER_METADATA"]),
+    "tokenizer_src": rp(os.environ["HEAD_TOKENIZER_SRC"]),
+    "tokenizer_tgt": rp(os.environ["HEAD_TOKENIZER_TGT"]),
+    "baseline_metrics_path": str(bl),
+    "report": str((root / "report_head.txt").resolve()),
+    "bundle": str((root / "results" / "bundle_head_metrics.json").resolve()),
+    "param_counts": str((root / "results" / "param_counts.json").resolve()),
     "runs": {
         "baseline_mh_dot": str(bl.parent),
-        "head_1h_dot": str(repo / "runs/head_1h_dot"),
+        "head_1h_dot": str((repo / "runs" / "head_1h_dot").resolve()),
     },
 }
 (root / "results" / "manifest_head.json").write_text(json.dumps(m, indent=2), encoding="utf-8")

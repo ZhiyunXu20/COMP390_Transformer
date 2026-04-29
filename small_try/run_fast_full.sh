@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# small_try 全流程：子语料 → dot 训练 → additive 训练 → 报告 + 合并 JSON
+# small_try 全流程：split 语料（与 Config 一致）→ dot → additive → 报告 + 合并 JSON + MANIFEST
 # 遇错立即退出 (set -euo pipefail)。日志请用 nohup 重定向或 tee。
 
 set -euo pipefail
@@ -14,28 +14,66 @@ export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:T
 export WANDB_DIR="${WANDB_DIR:-$ROOT/wandb_cache}"
 mkdir -p "$WANDB_DIR" logs results
 
+TRAIN_PATH="${TRAIN_PATH:-data/splits/en_fr_50k_seed42/train.tsv}"
+VAL_PATH="${VAL_PATH:-data/splits/en_fr_50k_seed42/val.tsv}"
+TEST_PATH="${TEST_PATH:-data/splits/en_fr_50k_seed42/test.tsv}"
+TOKENIZER_SRC="${TOKENIZER_SRC:-data/tokenizer_src_train_only.json}"
+TOKENIZER_TGT="${TOKENIZER_TGT:-data/tokenizer_tgt_train_only.json}"
+TOKENIZER_METADATA="${TOKENIZER_METADATA:-data/tokenizer_metadata.json}"
+
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
 log "======== small_try 流水线开始 ========"
-log "PWD=$ROOT"
+log "PWD=$ROOT REPO=$REPO"
+log "划分: train=$TRAIN_PATH val=$VAL_PATH test=$TEST_PATH（相对仓库根）"
+log "tokenizer: src=$TOKENIZER_SRC tgt=$TOKENIZER_TGT meta=$TOKENIZER_METADATA"
 log "CUDA: ${CUDA_VISIBLE_DEVICES:-默认}"
 python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else '')" || true
 
-log "[1/5] 生成子语料 corpus_50k.tsv（5 万句）"
-python create_subset.py --lines 50000 --out data/corpus_50k.tsv
+log "[1/5] 校验划分与 train_only 词表文件存在"
+for rel in "$TRAIN_PATH" "$VAL_PATH" "$TEST_PATH" "$TOKENIZER_SRC" "$TOKENIZER_TGT"; do
+  if [[ ! -f "$REPO/$rel" ]]; then
+    log "ERROR: 缺少文件: $REPO/$rel"
+    log "请先运行 scripts/make_splits.py 与 scripts/train_tokenizers_from_train_split.py（见 docs/REPRODUCIBILITY.md）"
+    exit 1
+  fi
+done
+if [[ ! -f "$REPO/$TOKENIZER_METADATA" ]]; then
+  log "WARN: 未找到 $REPO/$TOKENIZER_METADATA（可选；manifest 仍会记录预期路径）"
+fi
 
 MAXS="${TRAIN_MAX_STEPS:-3000}"
 EXTRA=()
 [[ -n "${TRAIN_VAL_EVERY:-}" ]] && EXTRA+=(--val-every "${TRAIN_VAL_EVERY}")
 [[ "${EVAL_LIGHT:-}" == 1 ]] && EXTRA+=(--eval-light)
 BATCH_OPT=()
-[[ -n "${TRAIN_BATCH_SIZE:-}" ]] && BATCH_OPT+=(--batch-size "$TRAIN_BATCH_SIZE")
+[[ -n "${TRAIN_BATCH_SIZE:-}" ]] && BATCH_OPT+=(--batch-size "$TRAIN_BATCH_SIZE}")
+
+COMMON_TRAIN=(
+  --train-path "$TRAIN_PATH"
+  --val-path "$VAL_PATH"
+  --test-path "$TEST_PATH"
+  --tokenizer-src "$TOKENIZER_SRC"
+  --tokenizer-tgt "$TOKENIZER_TGT"
+)
 
 log "[2/5] 训练 dot_product → runs/fast_dot/（W&B project=attention-small-2, max_steps=$MAXS）"
-python train.py --attention dot_product --name fast_dot --max-steps "$MAXS" "${EXTRA[@]}" "${BATCH_OPT[@]}"
+python train.py \
+  --attention dot_product \
+  --name fast_dot \
+  --max-steps "$MAXS" \
+  "${COMMON_TRAIN[@]}" \
+  "${EXTRA[@]}" \
+  "${BATCH_OPT[@]}"
 
 log "[3/5] 训练 additive → runs/fast_add/"
-python train.py --attention additive --name fast_add --max-steps "$MAXS" "${EXTRA[@]}" "${BATCH_OPT[@]}"
+python train.py \
+  --attention additive \
+  --name fast_add \
+  --max-steps "$MAXS" \
+  "${COMMON_TRAIN[@]}" \
+  "${EXTRA[@]}" \
+  "${BATCH_OPT[@]}"
 
 log "[4/5] 生成 report.txt 与 bundle_metrics.json（metrics 在仓库根 runs/，见 train_runtime）"
 python compare_runs.py \
@@ -45,19 +83,43 @@ python compare_runs.py \
   --json-bundle results/bundle_metrics.json
 
 log "[5/5] 写入流水线清单 manifest.json"
-small_try_root="$ROOT" REPO="$REPO" python - << 'PY'
-import json, time, os
+export REPO
+export small_try_root="$ROOT"
+export TRY_TRAIN_PATH="$TRAIN_PATH"
+export TRY_VAL_PATH="$VAL_PATH"
+export TRY_TEST_PATH="$TEST_PATH"
+export TRY_TOKENIZER_SRC="$TOKENIZER_SRC"
+export TRY_TOKENIZER_TGT="$TOKENIZER_TGT"
+export TRY_TOKENIZER_METADATA="$TOKENIZER_METADATA"
+python - << 'PY'
+import json
+import os
+import time
 from pathlib import Path
+
 root = Path(os.environ["small_try_root"])
-repo = Path(os.environ["REPO"])
+repo = Path(os.environ["REPO"]).resolve()
+
+def rp(rel: str) -> str:
+    return str((repo / rel).resolve())
+
+split_dir = repo / "data" / "splits" / "en_fr_50k_seed42"
+
 m = {
     "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    "data": str(root / "data/corpus_50k.tsv"),
-    "report": str(root / "report.txt"),
-    "bundle": str(root / "results/bundle_metrics.json"),
+    "split_protocol": "train_only_tokenizers",
+    "split_dir": str(split_dir.resolve()),
+    "train_path": rp(os.environ["TRY_TRAIN_PATH"]),
+    "val_path": rp(os.environ["TRY_VAL_PATH"]),
+    "test_path": rp(os.environ["TRY_TEST_PATH"]),
+    "tokenizer_metadata": rp(os.environ["TRY_TOKENIZER_METADATA"]),
+    "tokenizer_src": rp(os.environ["TRY_TOKENIZER_SRC"]),
+    "tokenizer_tgt": rp(os.environ["TRY_TOKENIZER_TGT"]),
+    "report": str((root / "report.txt").resolve()),
+    "bundle": str((root / "results" / "bundle_metrics.json").resolve()),
     "runs": {
-        "dot": str(repo / "runs/fast_dot"),
-        "add": str(repo / "runs/fast_add"),
+        "dot": str((repo / "runs" / "fast_dot").resolve()),
+        "add": str((repo / "runs" / "fast_add").resolve()),
     },
 }
 (root / "results" / "manifest.json").write_text(json.dumps(m, indent=2), encoding="utf-8")

@@ -16,11 +16,10 @@ from report_extra_metrics import (
     append_extra_conclusion_two,
     append_extra_rows_three_cols,
     append_extra_rows_two_cols,
+    build_extra_metrics_banner_three,
+    build_extra_metrics_banner_two,
+    load_metrics_compare,
 )
-
-
-def load_metrics(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def n_heads_of(m: dict):
@@ -58,26 +57,47 @@ def main() -> None:
         "--json-bundle",
         default=str(_REPO_ROOT / "small_head" / "results" / "bundle_head_metrics.json"),
     )
+    p.add_argument(
+        "--prefer-test-eval",
+        action="store_true",
+        help="优先读取各 run 的 test_eval/metrics_test.json（held-out test）；"
+        "否则回落 metrics.json，并在标题标注 validation-sampled",
+    )
     args = p.parse_args()
 
     baseline_p = Path(args.baseline)
     dot_p = Path(args.one_dot)
     add_p = Path(args.one_add) if args.one_add else None
 
-    need = [("baseline (mh dot)", baseline_p), ("1h dot", dot_p)]
+    bl, _, prov_bl = load_metrics_compare(
+        baseline_p, prefer_test_eval=args.prefer_test_eval
+    )
+    d1, _, prov_d1 = load_metrics_compare(dot_p, prefer_test_eval=args.prefer_test_eval)
     if add_p is not None:
-        need.append(("1h add", add_p))
-    for label, path in need:
-        if not path.is_file():
-            raise SystemExit(f"缺少 {label} 的 metrics: {path}")
-
-    bl = load_metrics(baseline_p)
-    d1 = load_metrics(dot_p)
-    a1 = load_metrics(add_p) if add_p is not None else None
+        a1, _, prov_a1 = load_metrics_compare(
+            add_p, prefer_test_eval=args.prefer_test_eval
+        )
+    else:
+        a1 = None
+        prov_a1 = None
 
     lines: list[str] = []
     lines.append("=" * 72)
     lines.append("small_head：多头（基线） vs 全模型单头（点积为主；加性为可选第三列）")
+    if args.prefer_test_eval:
+        if a1 is None:
+            lines.append(
+                f"报告标题·数据来源：mh_baseline={prov_bl}；1h_dot={prov_d1}"
+            )
+        else:
+            lines.append(
+                f"报告标题·数据来源：mh_baseline={prov_bl}；"
+                f"1h_dot={prov_d1}；1h_add={prov_a1}"
+            )
+        lines.append(
+            "（held-out test = test_eval/metrics_test.json；"
+            "validation-sampled = 训练 metrics.json / eval_split）"
+        )
     lines.append("=" * 72)
     lines.append("")
     lines.append("基线来自 small_try runs/fast_dot（n_heads=4, dot_product）。")
@@ -108,6 +128,7 @@ def main() -> None:
             label_w=34,
             col_a="mh_dot",
             col_b="1h_dot",
+            extra_metrics_banner=build_extra_metrics_banner_two(prov_bl, prov_d1),
         )
         lines.append("")
         lines.append("W&B（若存在）:")
@@ -150,6 +171,9 @@ def main() -> None:
             c0="mh_dot",
             c1="1h_dot",
             c2="1h_add",
+            extra_metrics_banner=build_extra_metrics_banner_three(
+                prov_bl, prov_d1, prov_a1
+            ),
         )
         lines.append("")
         lines.append("W&B（若存在）:")

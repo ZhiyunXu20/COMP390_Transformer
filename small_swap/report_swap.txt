@@ -1,26 +1,28 @@
 ============================================================
 small_swap：法→英（子语料 + 小模型 + 短训练）
+报告标题·数据来源：dot_product=held-out test
+（held-out test = test_eval/metrics_test.json；validation-sampled = 训练 metrics.json / eval_split）
 ============================================================
 
 说明：方向为法语→英语；语料列为 EN\tFR，训练时交换为 FR 源 / EN 目标。
 与全数据长训的绝对 BLEU 不可直接等同；与 EN→FR 的 small_try 数值也不可横向对比。
 
-单 run（dot_product） data_path: /root/autodl-tmp/small_swap/data/corpus_50k.tsv
+单 run（dot_product） data_path: None
 
 指标                              dot_product
 --------------------------------------------
-final_val_loss               4.624376432040177
-final_bleu                   10.417890710229768
-best_bleu_during_training    10.417890710229768
-optimizer_steps                        3000
+final_val_loss                            —
+final_bleu                   9.762919737323896
+best_bleu_during_training    9.762919737323896
+optimizer_steps                           —
 
-extra_metrics（最终评估；— 表示未写入或依赖未安装）:
+extra_metrics（held-out test 终评，evaluate_test.py；— 表示未写入）:
                                 swap_fr_dot
 -------------------------------------------
-extra: chrF                         33.7725
-extra: chrF++                       31.7588
-extra: BERTScore F1                  0.7931
-extra: COMET                         0.5078
+extra: chrF                         32.2171
+extra: chrF++                       30.3822
+extra: BERTScore F1                  0.7914
+extra: COMET                         0.5037
 
 （当前为单 run 模式：未提供有效的 --add 路径。）
 

@@ -43,7 +43,7 @@ python scripts/train_tokenizers_from_train_split.py \
 
 ## Test 集最终评估（`evaluate_test.py`）
 
-训练时请将 **`eval_split=val`**，仅用验证集做 early stopping / 周期性 BLEU；**不要用 test.tsv 做训练中途早停**。对保留的 `test.tsv` 在训练结束后运行仓库根目录的 **`evaluate_test.py`**（不做 identical/high-similarity 跳过；BLEU/chrF/COMET/BERTScore 等见输出的 `metrics_test.json`）：
+训练时请将 **`eval_split=val`**，仅用验证集做 early stopping / 周期性 BLEU；**不要用 test.tsv 做训练中途早停**。对保留的 `test.tsv` 在训练结束后运行仓库根目录的 **`evaluate_test.py`**（不做 identical/high-similarity 跳过；BLEU/chrF/COMET/BERTScore 等见输出的 `metrics_test.json`）。Independent test evaluation is stored as local artifacts by default; W&B logging is optional and secondary（见 `--wandb-eval`）。
 
 ```bash
 cd "$REPO"
@@ -62,6 +62,18 @@ python evaluate_test.py \
 
 训练结束后每个 run 目录会写出 **`training_meta.json`**（墙钟时间、`num_parameters`、峰值 GPU 显存等），供 `experiments/run_ablation.py` 汇总。
 
+### Experiment fairness audit
+
+Read-only cross-run check: same splits / train-only tokenizers / backbone & budget / seed / eval protocol (plus optional parameter-count deltas vs `fast_dot`). Writes **`results/variant_fairness_audit.md`** and **`results/variant_fairness_audit.json`**; **exit 1** if any run **FAIL** (missing configs or critical mismatch).
+
+```bash
+cd "$REPO"
+python scripts/check_variant_experiment_fairness.py \
+  --runs fast_dot fast_add var_bilinear var_gated_dot_additive var_sparsemax var_entmax15 var_local_window var_global_local
+```
+
+省略 `--runs` 时使用脚本内置默认列表（含 `fast_dot`、`fast_add`、`head_1h_dot`、若干 `var_*` 等）；可用 `--runs-root`、`--output-md`、`--output-json` 自定义路径。
+
 ### 两系统显著性检验（`scripts/significance_test.py`）
 
 对两份 **`evaluate_test.py`** 生成的 **`predictions.jsonl`**（同一 test、行对齐）做配对 bootstrap，输出 ΔBLEU / ΔchrF、近似 p-value、`results/significance_report.md` 解读：
@@ -76,18 +88,34 @@ python scripts/significance_test.py \
 
 ## 多 seed ablation（`experiments/run_ablation.py`）
 
-批量运行 dot/add × head数 × seed∈{42,43,44}，输出目录 **`runs/<experiment>/seed_<seed>/`**；每次训练后对 **`best.pt`**（验证 BLEU 最优）与 **`last.pt`**（最后一轮）分别调用 `evaluate_test.py`，汇总 **`results/ablation_summary.csv`** / **`ablation_summary.md`**（及明细 **`ablation_per_seed.csv`**）。
+**默认（flat）**：`fast_dot` / `fast_add`（各 `dot_product` / `additive`，`n_heads=4`），seeds **`1 2 3`**，目录 **`runs/fast_dot_s1` … `runs/fast_add_s3`**；`--max-steps` 默认 **3000**；每轮训练后对 **`best.pt`** 调用 **`evaluate_test.py`** → **`runs/<run>/test_eval/`**。汇总 **`results/ablation_summary.csv`** / **`ablation_summary.md`**（含 BLEU / chrF++ / COMET 等跨 seed 均值与标准差）及 **`ablation_per_seed.csv`**。
 
 ```bash
 cd "$REPO"
+python experiments/run_ablation.py --dry-run
 python experiments/run_ablation.py \
   --train-path data/splits/en_fr_50k_seed42/train.tsv \
   --val-path data/splits/en_fr_50k_seed42/val.tsv \
   --test-path data/splits/en_fr_50k_seed42/test.tsv \
+  --seeds 1 2 3 \
   --max-steps 3000
 ```
 
-`--dry-run` 仅打印命令；`--skip-add-h1` 跳过 additive + 单头组合；`--no-eval` 只训练不测评；`--wandb` 打开 W&B。
+GPU 空闲后若只需补跑 **`fast_add_*`**（不重训 `fast_dot_*`）：
+
+```bash
+python experiments/run_ablation.py --experiments fast_add --seeds 1 2 3 --max-steps 3000
+```
+
+完成训练与 test 评估后，可用 **`--aggregate-only`** 仅从磁盘刷新汇总（不重训）：
+
+```bash
+python experiments/run_ablation.py --aggregate-only --seeds 1 2 3
+```
+
+**Legacy**：加 **`--legacy-layout`** 恢复旧版 **`runs/<experiment>/seed_<seed>/`**（dot_h4 / add_h4 / 单头等），seeds 默认 `42 43 44`，并对 **`best.pt`** 与 **`last.pt`** 各跑一次 test 评估。
+
+`--dry-run` 仅打印命令；`--skip-add-h1` 仅作用于 legacy；`--no-eval` 只训练不测评；`--wandb` 打开 W&B。
 
 ## 模型效率 Profile（`scripts/profile_model.py`）
 

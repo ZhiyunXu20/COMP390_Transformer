@@ -45,7 +45,7 @@ class Config:
 
     additive_d_hidden: int = 256
 
-    # local_window / global_local：结构掩码超参
+    # local_window / global_local：结构掩码超参（稠密 masked attention；非稀疏核）
     local_window_size: int = 4
     global_local_window_size: int = 4
     global_tokens: int = 4

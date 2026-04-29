@@ -1,0 +1,10 @@
+run,attention_type,family,bleu,chrf,comet,bertscore_f1,num_examples,checkpoint,notes,status
+fast_dot,dot_product,scaled dot-product / softmax / dense full,16.066693126898603,37.67012802375193,0.5054786059379578,0.8783851265907288,2500,/root/autodl-tmp/runs/fast_dot/best.pt,pkg=small_try; n_heads=4,ok
+fast_add,additive,additive scoring / softmax / dense full,8.163268278892572,26.125483052072422,0.444404614263773,0.8535266518592834,2500,/root/autodl-tmp/runs/fast_add/best.pt,pkg=small_try; n_heads=4,ok
+head_1h_dot,dot_product,scaled dot-product / softmax / dense full,14.567285877018751,35.85601457757781,0.49322535682320595,0.8744089603424072,2500,/root/autodl-tmp/runs/head_1h_dot/best.pt,pkg=small_head; n_heads=1,ok
+var_bilinear,,,,,,,,,missing runs/var_bilinear/test_eval/metrics_test.json,missing_test_eval
+var_gated_dot_additive,,,,,,,,,missing runs/var_gated_dot_additive/test_eval/metrics_test.json,missing_test_eval
+var_sparsemax,,,,,,,,,missing runs/var_sparsemax/test_eval/metrics_test.json,missing_test_eval
+var_entmax15,,,,,,,,,missing runs/var_entmax15/test_eval/metrics_test.json,missing_test_eval
+var_local_window,,,,,,,,,missing runs/var_local_window/test_eval/metrics_test.json,missing_test_eval
+var_global_local,,,,,,,,,missing runs/var_global_local/test_eval/metrics_test.json,missing_test_eval

@@ -431,6 +431,7 @@ def main():
     print("最终评估（用于报告）…")
     final_vloss = validation_loss(model, eval_loader, pad_idx, device, desc="final_val")
     final_bleu_diag: dict = {}
+    predictions_val_sample = out / "predictions_val_sample.jsonl"
     final_bleu, final_extra = evaluate_generation_corpus(
         model,
         eval_loader,
@@ -456,7 +457,25 @@ def main():
         comet_gpus=getattr(cfg, "eval_comet_gpus", None),
         force_heavy=True,
         out_diag=final_bleu_diag,
+        predictions_jsonl_path=predictions_val_sample,
     )
+    eval_n = len(eval_loader.dataset)
+    sampled = cfg.bleu_sample_size < eval_n
+    fem = {
+        "note": "Greedy 解码子样本来自 eval_split（非独立 test.tsv）；完整 test 请用仓库根 evaluate_test.py。",
+        "eval_split": getattr(cfg, "eval_split", "val"),
+        "eval_dataset_num_examples": eval_n,
+        "bleu_sample_size": cfg.bleu_sample_size,
+        "pairs_used": final_bleu_diag.get("bleu_pairs_used"),
+        "sampled": sampled,
+        "predictions_jsonl": str(predictions_val_sample.resolve()),
+    }
+    fem_path = out / "final_eval_meta.json"
+    fem_path.write_text(
+        json.dumps(fem, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(f"final_eval_meta -> {fem_path}", file=sys.stderr)
     print(
         f"完成。metrics -> {out / 'metrics.json'} | final_val_loss={final_vloss:.4f} "
         f"final_bleu={final_bleu} best_bleu={best_bleu}"

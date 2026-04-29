@@ -1,0 +1,73 @@
+{
+  "reference_run": "fast_dot",
+  "repo_root": "/root/autodl-tmp",
+  "runs_root": "/root/autodl-tmp/runs",
+  "reference_num_parameters": 30442800,
+  "parameter_warn_threshold_percent": 1.0,
+  "fail_if_mismatch_keys": [
+    "train_path",
+    "val_path",
+    "test_path",
+    "tokenizer_src",
+    "tokenizer_tgt",
+    "d_model",
+    "d_ff",
+    "n_layers",
+    "batch_size",
+    "max_steps",
+    "learning_rate",
+    "warmup_steps",
+    "seed",
+    "eval_split",
+    "max_gen_len"
+  ],
+  "runs": [
+    {
+      "run": "fast_dot",
+      "attention_type": "dot_product",
+      "status": "PASS",
+      "comparable_to_fast_dot": true,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": []
+    },
+    {
+      "run": "fast_add",
+      "attention_type": "additive",
+      "status": "WARN",
+      "comparable_to_fast_dot": true,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [],
+      "notes": "parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ]
+    },
+    {
+      "run": "head_1h_dot",
+      "attention_type": "dot_product",
+      "status": "WARN",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [
+        "training_meta.json (optional)"
+      ],
+      "mismatched_fields": [
+        "n_heads (!= ref; head-count ablation risk)"
+      ],
+      "notes": "n_heads differs from reference; missing_training_meta",
+      "parameter_count_source": "model_from_resolved_config",
+      "flags": [
+        "missing_training_meta"
+      ]
+    }
+  ]
+}

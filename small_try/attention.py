@@ -1,5 +1,11 @@
 """可切换的注意力实现：缩放点积、加性，以及若干科学目的的变体。
 
+`local_window` / `global_local`（配置名与下文类名沿用枚举）：实现均为 **稠密 masked attention**——
+对完整 ``L×L`` 打分矩阵做 softmax，仅通过 **加性结构掩码**（禁止位置 logits → −∞）体现局部带 /
+全局锚点先验。**计算与存储复杂度与标准全连接自注意力同阶**（``O(L^2)`` 量级），并 **不包含**
+Longformer / BigBird / ETC 等论文中的 **块稀疏内核或未物化的稀疏矩阵乘法**；若将来引入真正的
+稀疏核实现，须在命名上与这里的 dense-mask 变体区分。
+
 同一接口：forward(q, k, v, attn_mask=None) -> (out, attn)，其中 q,k,v 为 (B, H, L, Dk)。
 """
 
@@ -76,7 +82,10 @@ def _structural_local_window(
     device: torch.device,
     dtype: torch.dtype,
 ) -> torch.Tensor:
-    """返回 additive mask：禁止位置为 -inf，允许为 0。形状 (Lq, Lk)，广播到 scores。
+    """构造 **稠密注意力** 用的加性掩码（dense masked attention）：禁止位置 −∞，允许 0。
+
+    与「稀疏注意力算法」无关——上层仍会形成完整 ``Q K^T`` 并经 softmax；掩码只是把 logits 加到大负数。
+    形状 ``(Lq, Lk)``，广播到 scores。
 
     encoder_self：|i−j| ≤ w（双向局部）。
     decoder_self：因果且 i−j ≤ w（仅看过去 window 内）。
@@ -112,7 +121,10 @@ def _structural_global_local(
     device: torch.device,
     dtype: torch.dtype,
 ) -> torch.Tensor:
-    """global-local：前 G 个 key 为全局锚点（所有 query 可见）；其余键位满足局部窗口规则。
+    """构造 **全局锚点 + 局部带** 的稠密掩码（dense masked attention），命名描述结构先验而非稀疏内核。
+
+    前 G 个 key 为全局锚点（所有 query 可见）；其余键位满足局部窗口规则。**仍为完整稠密 QK^T + softmax**，
+    不是 Longformer / ETC 类线性复杂度稀疏实现。
 
     Encoder：attend j 当 j < G 或 |i−j| ≤ w。
     Decoder：因果下 attend j 当 j ≤ i 且 (j < G 或 i−j ≤ w)。
@@ -277,7 +289,10 @@ class GatedDotAdditiveAttention(nn.Module):
 
 
 class LocalWindowDotAttention(nn.Module):
-    """缩放点积 + 局部窗口掩码（见 _structural_local_window）。"""
+    """缩放点积 + **稠密**局部窗口掩码（`_structural_local_window`）。
+
+    标准 ``matmul(Q,K^T)`` + softmax；掩码仅屏蔽不允许的键位，**不是**滑动窗口稀疏乘法或未物化注意力。
+    """
 
     def __init__(
         self,
@@ -315,7 +330,10 @@ class LocalWindowDotAttention(nn.Module):
 
 
 class GlobalLocalDotAttention(nn.Module):
-    """缩放点积 + global-local 掩码（见 _structural_global_local）。"""
+    """缩放点积 + global-local **稠密**掩码（`_structural_global_local`）。
+
+    「global/local」指允许的注意力 **模式**（锚点 + 局部带），实现仍为稠密打分矩阵。
+    """
 
     def __init__(
         self,
@@ -409,7 +427,11 @@ class Entmax15DotAttention(nn.Module):
 
 
 def build_core_attention(cfg: Config, attn_layer: AttnLayerKind = "encoder_self") -> nn.Module:
-    """构造单层 core attention（不含 Wq,Wk,Wv,Wo）。attn_layer 影响 local/global 的结构掩码。"""
+    """构造单层 core attention（不含 Wq,Wk,Wv,Wo）。
+
+    `attn_layer` 仅影响 `local_window` / `global_local` 的 **稠密结构掩码**（encoder_self /
+    decoder_self / cross）；二者均为 dense masked attention，而非稀疏核。
+    """
     d_k = cfg.d_model // cfg.n_heads
     att: AttentionType = cfg.attention_type  # type: ignore[assignment]
 
@@ -454,7 +476,7 @@ def core_attention_param_count(cfg: Config, attn_layer: AttnLayerKind = "encoder
 # --- 相对训练步耗时（相对 dot_product，同 batch / 设备；仅经验量级，用于实验记录）---
 # bilinear：约 1.1–1.3×（head 级 W 的额外 einsum）
 # gated_dot_additive：约 1.8–2.3×（双路分数）
-# local_window / global_local：约 0.95–1.1×（仍是稠密 matmul，掩码仅加法）
+# local_window / global_local：约 0.95–1.1×（仍为 **完整稠密** matmul；掩码仅为 logits 加法，无稀疏加速）
 # sparsemax：约 1.1–1.2×（若用 entmax 自带 CUDA）；朴素实现可能更慢
 # entmax15：约 1.2–1.5×（bisect）；退化为 sparsemax 时同 sparsemax
 

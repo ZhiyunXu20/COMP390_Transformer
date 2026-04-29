@@ -1,0 +1,7 @@
+run_name,experiment,attention_type,n_heads,seed,checkpoint_kind,checkpoint_path,BLEU,chrF,chrF++,COMET,wall_time_seconds,peak_gpu_memory_mib,num_parameters
+fast_dot_s1,fast_dot,dot_product,4,1,best,/root/autodl-tmp/runs/fast_dot_s1/best.pt,16.27755073167496,37.75464625636433,36.13274834172182,0.5067629693210125,721.4895406048745,10374.9970703125,30442800
+fast_dot_s2,fast_dot,dot_product,4,2,best,/root/autodl-tmp/runs/fast_dot_s2/best.pt,15.243098254602273,36.69346656550205,35.12084196151532,0.5072731954693794,725.3529363507405,10374.9970703125,30442800
+fast_dot_s3,fast_dot,dot_product,4,3,best,/root/autodl-tmp/runs/fast_dot_s3/best.pt,15.8884560205611,37.80251157088069,36.1153549930606,0.5126202752172947,709.8274843450636,10374.7158203125,30442800
+fast_add_s1,fast_add,additive,4,1,best,/root/autodl-tmp/runs/fast_add_s1/best.pt,,,,,,,
+fast_add_s2,fast_add,additive,4,2,best,,,,,,,,
+fast_add_s3,fast_add,additive,4,3,best,,,,,,,,

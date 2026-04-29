@@ -68,6 +68,43 @@ def write_predictions_jsonl(path: Path, rows: list[dict]) -> None:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def log_wandb_test_metrics(
+    *,
+    project: str,
+    run_name: str,
+    bleu: float,
+    extra: dict,
+    num_examples: int,
+) -> None:
+    """仅在 --wandb-eval 时调用；只上传标量 summary，不上传 predictions。"""
+    try:
+        import wandb
+    except ImportError:
+        print("wandb 未安装，跳过 W&B 上传（已传 --wandb-eval）", file=sys.stderr)
+        return
+    payload: dict[str, float | int] = {
+        "test/bleu": float(bleu),
+        "test/num_examples": int(num_examples),
+    }
+    chrf = extra.get("chrf")
+    if chrf is not None:
+        payload["test/chrf"] = float(chrf)
+    comet = extra.get("comet")
+    if comet is not None:
+        payload["test/comet"] = float(comet)
+    bf1 = extra.get("bertscore_f1")
+    if bf1 is not None:
+        payload["test/bertscore_f1"] = float(bf1)
+    try:
+        wandb.init(project=project, name=run_name, job_type="test_eval")
+        try:
+            wandb.log(payload)
+        finally:
+            wandb.finish()
+    except Exception as e:
+        print(f"W&B 上传失败（本地 metrics 已写出）: {e}", file=sys.stderr)
+
+
 def write_examples_md(path: Path, rows: list[dict], *, limit: int = 30) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
@@ -105,6 +142,23 @@ def main() -> None:
         help="checkpoint 对应的代码目录（与 train 时一致）",
     )
     p.add_argument("--cpu", action="store_true")
+    p.add_argument(
+        "--wandb-eval",
+        action="store_true",
+        help="将 metrics_test.json 核心标量以 test/* 前缀上传到 W&B（默认关闭）",
+    )
+    p.add_argument(
+        "--wandb-project",
+        type=str,
+        default=None,
+        help="W&B project（默认：checkpoint cfg.project_name，否则 mt-test-eval）",
+    )
+    p.add_argument(
+        "--wandb-run-name",
+        type=str,
+        default=None,
+        help="W&B run 名称（默认：<checkpoint 文件名 stem>_test_eval）",
+    )
     args = p.parse_args()
 
     ckpt_path = resolve_under_repo(args.checkpoint, _REPO_ROOT)
@@ -253,6 +307,17 @@ def main() -> None:
         f"BLEU={bleu} chrF={extra.get('chrf')} examples={len(hyps)}",
         file=sys.stderr,
     )
+
+    if args.wandb_eval:
+        wb_project = args.wandb_project or getattr(cfg, "project_name", None) or "mt-test-eval"
+        wb_name = args.wandb_run_name or f"{ckpt_path.stem}_test_eval"
+        log_wandb_test_metrics(
+            project=wb_project,
+            run_name=wb_name,
+            bleu=bleu,
+            extra=extra,
+            num_examples=len(hyps),
+        )
 
 
 if __name__ == "__main__":
