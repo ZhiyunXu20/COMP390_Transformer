@@ -2,6 +2,6 @@ run_name,experiment,attention_type,n_heads,seed,checkpoint_kind,checkpoint_path,
 fast_dot_s1,fast_dot,dot_product,4,1,best,/root/autodl-tmp/runs/fast_dot_s1/best.pt,16.27755073167496,37.75464625636433,36.13274834172182,0.5067629693210125,721.4895406048745,10374.9970703125,30442800
 fast_dot_s2,fast_dot,dot_product,4,2,best,/root/autodl-tmp/runs/fast_dot_s2/best.pt,15.243098254602273,36.69346656550205,35.12084196151532,0.5072731954693794,725.3529363507405,10374.9970703125,30442800
 fast_dot_s3,fast_dot,dot_product,4,3,best,/root/autodl-tmp/runs/fast_dot_s3/best.pt,15.8884560205611,37.80251157088069,36.1153549930606,0.5126202752172947,709.8274843450636,10374.7158203125,30442800
-fast_add_s1,fast_add,additive,4,1,best,/root/autodl-tmp/runs/fast_add_s1/best.pt,,,,,,,
-fast_add_s2,fast_add,additive,4,2,best,,,,,,,,
-fast_add_s3,fast_add,additive,4,3,best,,,,,,,,
+fast_add_s1,fast_add,additive,4,1,best,/root/autodl-tmp/runs/fast_add_s1/best.pt,7.7623095148713634,25.868728151761427,24.48966397535564,0.44794571356773377,1974.3825933430344,51823.6806640625,30845232
+fast_add_s2,fast_add,additive,4,2,best,/root/autodl-tmp/runs/fast_add_s2/best.pt,7.846808746410006,26.540426262725703,24.905376769927237,0.4522346744120121,1911.3015885651112,51823.6806640625,30845232
+fast_add_s3,fast_add,additive,4,3,best,/root/autodl-tmp/runs/fast_add_s3/best.pt,9.00799750430904,28.64088801186046,26.913589234420794,0.46235767346024514,1945.7937508979812,51823.86865234375,30845232
