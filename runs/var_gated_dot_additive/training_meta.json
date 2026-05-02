@@ -1,0 +1,7 @@
+{
+  "wall_time_seconds": 2091.081432635896,
+  "num_parameters": 30845280,
+  "peak_gpu_memory_bytes": 54891463168,
+  "peak_gpu_memory_mib": 52348.57861328125,
+  "run_directory": "/root/autodl-tmp/runs/var_gated_dot_additive"
+}

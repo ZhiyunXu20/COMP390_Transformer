@@ -1,0 +1,7 @@
+{
+  "wall_time_seconds": 1069.0397422695532,
+  "num_parameters": 30442800,
+  "peak_gpu_memory_bytes": 10878899200,
+  "peak_gpu_memory_mib": 10374.9267578125,
+  "run_directory": "/root/autodl-tmp/runs/var_global_local"
+}

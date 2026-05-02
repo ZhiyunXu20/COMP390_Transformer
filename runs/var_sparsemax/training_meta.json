@@ -1,0 +1,7 @@
+{
+  "wall_time_seconds": 1155.477606012486,
+  "num_parameters": 30442800,
+  "peak_gpu_memory_bytes": 10891193344,
+  "peak_gpu_memory_mib": 10386.6513671875,
+  "run_directory": "/root/autodl-tmp/runs/var_sparsemax"
+}

@@ -1,0 +1,7 @@
+{
+  "wall_time_seconds": 805.030111211352,
+  "num_parameters": 30639408,
+  "peak_gpu_memory_bytes": 10991642624,
+  "peak_gpu_memory_mib": 10482.447265625,
+  "run_directory": "/root/autodl-tmp/runs/var_bilinear"
+}

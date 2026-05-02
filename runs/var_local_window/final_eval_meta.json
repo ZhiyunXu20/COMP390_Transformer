@@ -1,0 +1,9 @@
+{
+  "note": "Greedy 解码子样本来自 eval_split（非独立 test.tsv）；完整 test 请用仓库根 evaluate_test.py。",
+  "eval_split": "val",
+  "eval_dataset_num_examples": 2500,
+  "bleu_sample_size": 256,
+  "pairs_used": 256,
+  "sampled": true,
+  "predictions_jsonl": "/root/autodl-tmp/runs/var_local_window/predictions_val_sample.jsonl"
+}
