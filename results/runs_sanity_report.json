@@ -1,0 +1,149 @@
+[
+  {
+    "run": "fast_add",
+    "status": "ok",
+    "bleu": "8.16",
+    "chrf": "26.13",
+    "val_loss": "3.7453",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "fast_add_s1",
+    "status": "ok",
+    "bleu": "7.76",
+    "chrf": "25.87",
+    "val_loss": "3.7525",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "fast_add_s2",
+    "status": "ok",
+    "bleu": "7.85",
+    "chrf": "26.54",
+    "val_loss": "3.7849",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "fast_add_s3",
+    "status": "ok",
+    "bleu": "9.01",
+    "chrf": "28.64",
+    "val_loss": "3.6355",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "fast_dot",
+    "status": "ok",
+    "bleu": "16.07",
+    "chrf": "37.67",
+    "val_loss": "3.2555",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "fast_dot_s1",
+    "status": "ok",
+    "bleu": "16.28",
+    "chrf": "37.75",
+    "val_loss": "3.2466",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "fast_dot_s2",
+    "status": "ok",
+    "bleu": "15.24",
+    "chrf": "36.69",
+    "val_loss": "3.2940",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "fast_dot_s3",
+    "status": "ok",
+    "bleu": "15.89",
+    "chrf": "37.80",
+    "val_loss": "3.2521",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "head_1h_dot",
+    "status": "ok",
+    "bleu": "14.57",
+    "chrf": "35.86",
+    "val_loss": "3.3663",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "swap_fr_dot",
+    "status": "ok",
+    "bleu": "9.76",
+    "chrf": "32.22",
+    "val_loss": "4.6244",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "var_bilinear",
+    "status": "ok",
+    "bleu": "15.17",
+    "chrf": "37.16",
+    "val_loss": "3.2848",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "var_entmax15",
+    "status": "ok",
+    "bleu": "13.66",
+    "chrf": "34.09",
+    "val_loss": "3.3921",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "var_gated_dot_additive",
+    "status": "ok",
+    "bleu": "14.90",
+    "chrf": "36.52",
+    "val_loss": "3.3073",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "var_global_local",
+    "status": "ok",
+    "bleu": "7.30",
+    "chrf": "24.12",
+    "val_loss": "3.9100",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "var_local_window",
+    "status": "failed_nan",
+    "bleu": "0.00",
+    "chrf": "0.00",
+    "val_loss": "nan",
+    "empty_hyp_pct": "100.0",
+    "notes": [
+      "final_val_loss is NaN or non-finite",
+      "also failed_empty_outputs: test BLEU=0 and chrF=0"
+    ]
+  },
+  {
+    "run": "var_sparsemax",
+    "status": "ok",
+    "bleu": "7.65",
+    "chrf": "26.54",
+    "val_loss": "3.8158",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  }
+]

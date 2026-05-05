@@ -1,0 +1,99 @@
+{
+  "experiment_a": "fast_dot",
+  "experiment_b": "fast_add",
+  "csv": "/root/autodl-tmp/results/ablation_per_seed.csv",
+  "scipy_available": false,
+  "stats_backend": "mpmath",
+  "metrics": {
+    "BLEU": {
+      "metric": "BLEU",
+      "fast_dot": {
+        "mean": 15.803035002279444,
+        "std": 0.5224897555011587,
+        "n": 3,
+        "values": [
+          16.27755073167496,
+          15.243098254602273,
+          15.8884560205611
+        ]
+      },
+      "fast_add": {
+        "mean": 8.205705255196804,
+        "std": 0.696088837557272,
+        "n": 3,
+        "values": [
+          7.7623095148713634,
+          7.846808746410006,
+          9.00799750430904
+        ]
+      },
+      "mean_difference_a_minus_b": 7.5973297470826395,
+      "welch_t": 15.118899872486416,
+      "welch_df": 3.7106359132449986,
+      "ci_95_low": 6.158177101604103,
+      "ci_95_high": 9.036482392561176,
+      "p_value_two_sided": 0.00018084852915922767,
+      "conclusion": "fast_dot is significantly better than fast_add at α=0.05 (two-sided)."
+    },
+    "chrF++": {
+      "metric": "chrF++",
+      "fast_dot": {
+        "mean": 35.78964843209925,
+        "std": 0.5792686798590195,
+        "n": 3,
+        "values": [
+          36.13274834172182,
+          35.12084196151532,
+          36.1153549930606
+        ]
+      },
+      "fast_add": {
+        "mean": 25.436209993234556,
+        "std": 1.2962219519081783,
+        "n": 3,
+        "values": [
+          24.48966397535564,
+          24.905376769927237,
+          26.913589234420794
+        ]
+      },
+      "mean_difference_a_minus_b": 10.353438438864693,
+      "welch_t": 12.630705037950026,
+      "welch_df": 2.768203520205605,
+      "ci_95_low": 7.6167388595975964,
+      "ci_95_high": 13.090138018131789,
+      "p_value_two_sided": 0.0015749496845001154,
+      "conclusion": "fast_dot is significantly better than fast_add at α=0.05 (two-sided)."
+    },
+    "COMET": {
+      "metric": "COMET",
+      "fast_dot": {
+        "mean": 0.5088854800025622,
+        "std": 0.00324447286205492,
+        "n": 3,
+        "values": [
+          0.5067629693210125,
+          0.5072731954693794,
+          0.5126202752172947
+        ]
+      },
+      "fast_add": {
+        "mean": 0.45417935381333036,
+        "std": 0.007400167597174588,
+        "n": 3,
+        "values": [
+          0.44794571356773377,
+          0.4522346744120121,
+          0.46235767346024514
+        ]
+      },
+      "mean_difference_a_minus_b": 0.05470612618923182,
+      "welch_t": 11.726713110967653,
+      "welch_df": 2.7414937613426327,
+      "ci_95_low": 0.0390354772709796,
+      "ci_95_high": 0.07037677510748404,
+      "p_value_two_sided": 0.002014033363066936,
+      "conclusion": "fast_dot is significantly better than fast_add at α=0.05 (two-sided)."
+    }
+  }
+}

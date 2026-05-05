@@ -1,10 +1,11 @@
-run,attention_type,family,bleu,chrf,comet,bertscore_f1,num_examples,checkpoint,notes,status
-fast_dot,dot_product,scaled dot-product / softmax / dense full,16.066693126898603,37.67012802375193,0.5054786059379578,0.8783851265907288,2500,/root/autodl-tmp/runs/fast_dot/best.pt,pkg=small_try; n_heads=4,ok
-fast_add,additive,additive scoring / softmax / dense full,8.163268278892572,26.125483052072422,0.444404614263773,0.8535266518592834,2500,/root/autodl-tmp/runs/fast_add/best.pt,pkg=small_try; n_heads=4,ok
-head_1h_dot,dot_product,scaled dot-product / softmax / dense full,14.567285877018751,35.85601457757781,0.49322535682320595,0.8744089603424072,2500,/root/autodl-tmp/runs/head_1h_dot/best.pt,pkg=small_head; n_heads=1,ok
-var_bilinear,,,,,,,,,missing runs/var_bilinear/test_eval/metrics_test.json,missing_test_eval
-var_gated_dot_additive,,,,,,,,,missing runs/var_gated_dot_additive/test_eval/metrics_test.json,missing_test_eval
-var_sparsemax,,,,,,,,,missing runs/var_sparsemax/test_eval/metrics_test.json,missing_test_eval
-var_entmax15,,,,,,,,,missing runs/var_entmax15/test_eval/metrics_test.json,missing_test_eval
-var_local_window,,,,,,,,,missing runs/var_local_window/test_eval/metrics_test.json,missing_test_eval
-var_global_local,,,,,,,,,missing runs/var_global_local/test_eval/metrics_test.json,missing_test_eval
+run,pkg,attention_type,mechanism_family,BLEU,chrF,chrF++,COMET,BERTScore,number_of_test_examples,parameter_count,train_time_seconds,peak_gpu_memory_mib,status,notes
+fast_dot,small_try,dot_product,scoring,16.066693126898603,37.67012802375193,36.03582310876936,0.5054786059379578,0.8783851265907288,2500,30442800,790.929465145804,10359.01123046875,ok,n_heads=4
+fast_add,small_try,additive,scoring,8.163268278892572,26.125483052072422,24.64483761016418,0.444404614263773,0.8535266518592834,2500,30845232,1983.8700214531273,51823.52294921875,ok,n_heads=4
+head_1h_dot,small_head,dot_product,scoring,14.567285877018751,35.85601457757781,34.18601099599292,0.49322535682320595,0.8744089603424072,2500,,,,ok,n_heads=1
+swap_fr_dot,small_swap,dot_product,scoring,9.762919737323896,32.21713622649335,30.382188132324263,0.5036933917164803,0.7913930416107178,2500,,,,ok,n_heads=4
+var_bilinear,small_try,bilinear,scoring,15.170352106004204,37.156806618121834,35.36898272071391,0.5057444078624248,0.8775644302368164,2500,30639408,805.030111211352,10482.447265625,ok,n_heads=4; single seed; ranking below |Δ| = 1 BLEU is unreliable due to seed variance
+var_gated_dot_additive,small_try,gated_dot_additive,scoring,14.904965400310449,36.51618071873139,34.910095850120825,0.49988455956578254,0.8765794038772583,2500,30845280,2091.081432635896,52348.57861328125,ok,n_heads=4; single seed; ranking below |Δ| = 1 BLEU is unreliable due to seed variance
+var_sparsemax,small_try,sparsemax,normalization,7.64873885656105,26.540422890622757,25.05123309758775,0.4451709211051464,0.8541920781135559,2500,30442800,1155.477606012486,10386.6513671875,ok,n_heads=4; single seed; ranking below |Δ| = 1 BLEU is unreliable due to seed variance
+var_entmax15,small_try,entmax15,normalization,13.66055759400907,34.09083379215094,32.665802236656475,0.4964773300766945,0.8728055953979492,2500,30442800,9014.791781516746,10379.0703125,ok,n_heads=4; single seed; ranking below |Δ| = 1 BLEU is unreliable due to seed variance
+var_local_window,small_try,local_window,connectivity,0.0,0.0,0.0,0.35685146302580834,0.0,2500,30442800,1610.3641979061067,10374.9267578125,failed_nan,"n_heads=4; val_loss=NaN; outputs empty; numerical-stability failure, not mechanism comparison.; single seed; ranking below |Δ| = 1 BLEU is unreliable due to seed variance"
+var_global_local,small_try,global_local,connectivity,7.301362281906539,24.11618012240568,22.709626960904362,0.4368176667869091,0.8493637442588806,2500,30442800,1069.0397422695532,10374.9267578125,ok,n_heads=4; single seed; ranking below |Δ| = 1 BLEU is unreliable due to seed variance

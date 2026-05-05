@@ -33,7 +33,8 @@
       "mismatched_fields": [],
       "notes": "",
       "parameter_count_source": "training_meta.json",
-      "flags": []
+      "flags": [],
+      "training_meta_repaired": false
     },
     {
       "run": "fast_add",
@@ -48,7 +49,8 @@
       "parameter_count_source": "training_meta.json",
       "flags": [
         "parameter_changed"
-      ]
+      ],
+      "training_meta_repaired": false
     },
     {
       "run": "head_1h_dot",
@@ -57,17 +59,122 @@
       "comparable_to_fast_dot": false,
       "parameter_count": 30442800,
       "parameter_delta_percent": 0.0,
-      "missing_files": [
-        "training_meta.json (optional)"
-      ],
+      "missing_files": [],
       "mismatched_fields": [
         "n_heads (!= ref; head-count ablation risk)"
       ],
-      "notes": "n_heads differs from reference; missing_training_meta",
-      "parameter_count_source": "model_from_resolved_config",
+      "notes": "n_heads differs from reference; repaired_training_meta",
+      "parameter_count_source": "training_meta.json",
       "flags": [
-        "missing_training_meta"
-      ]
+        "repaired_training_meta"
+      ],
+      "training_meta_repaired": true
+    },
+    {
+      "run": "swap_fr_dot",
+      "attention_type": "dot_product",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [
+        "train_path",
+        "tokenizer_src",
+        "tokenizer_tgt"
+      ],
+      "notes": "repaired_training_meta",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "repaired_training_meta"
+      ],
+      "training_meta_repaired": true
+    },
+    {
+      "run": "var_bilinear",
+      "attention_type": "bilinear",
+      "status": "PASS",
+      "comparable_to_fast_dot": true,
+      "parameter_count": 30639408,
+      "parameter_delta_percent": 0.6458275848476487,
+      "missing_files": [],
+      "mismatched_fields": [],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_gated_dot_additive",
+      "attention_type": "gated_dot_additive",
+      "status": "WARN",
+      "comparable_to_fast_dot": true,
+      "parameter_count": 30845280,
+      "parameter_delta_percent": 1.3220860104852379,
+      "missing_files": [],
+      "mismatched_fields": [],
+      "notes": "parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_sparsemax",
+      "attention_type": "sparsemax",
+      "status": "PASS",
+      "comparable_to_fast_dot": true,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_entmax15",
+      "attention_type": "entmax15",
+      "status": "PASS",
+      "comparable_to_fast_dot": true,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_local_window",
+      "attention_type": "local_window",
+      "status": "PASS",
+      "comparable_to_fast_dot": true,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_global_local",
+      "attention_type": "global_local",
+      "status": "PASS",
+      "comparable_to_fast_dot": true,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
     }
   ]
 }
