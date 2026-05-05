@@ -48,13 +48,19 @@ small_swap/data/corpus_50k.tsv
 
 # Checkpoints & per-run training outputs
 **/*.pt
-# runs/: keep JSON/Markdown summaries (metrics, config, test_eval tables); omit checkpoints (**/*.pt) and line-level preds
+# Predictions vs checkpoints (runs/):
+# - runs/<run>/test_eval/predictions.jsonl is small (~150KB per run) and required for paired bootstrap
+#   significance tests (scripts/significance_test.py) on the held-out test set.
+# - Training-time runs/<run>/predictions_val_sample.jsonl are excluded by an explicit pattern below
+#   (large; training diagnostics only — do not substitute for test_eval preds).
+# - Model checkpoints (*.pt, etc.) stay excluded below: large but reproducible by re-running training.
+#
+# Exclude all predictions.jsonl under runs/ (paths may be large if mis-placed outside test_eval/)
 runs/**/predictions.jsonl
-# Baseline runs: committed for significance bootstrap (scripts/significance_test.py) clone-safe repro
-!runs/fast_dot/test_eval/predictions.jsonl
-!runs/fast_add/test_eval/predictions.jsonl
-!runs/head_1h_dot/test_eval/predictions.jsonl
-!runs/swap_fr_dot/test_eval/predictions.jsonl
+# Always track held-out test predictions for every run (evaluate_test.py output).
+!runs/**/test_eval/predictions.jsonl
+# Training-time val sample decode outputs (large; not for bootstrap / test protocol).
+runs/**/predictions_val_sample.jsonl
 *.pth
 *.ckpt
 *.safetensors

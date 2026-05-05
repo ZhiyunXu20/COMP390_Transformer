@@ -2,6 +2,28 @@
 
 所有命令均在**仓库根目录**执行（下文记为 `$REPO`）。路径默认为相对仓库根的 POSIX 字符串；也可用绝对路径。可选环境变量：`REPO_ROOT` 或 `AUTODL_REPO_ROOT`（覆盖仓库根推断）。
 
+## Code archive contents
+
+用于论文补充材料或审稿人可下载的**代码归档**（不含可重新训练产生的权重）。打包前用 `python scripts/prepare_code_archive.py` 校验 held-out `predictions.jsonl` 与 `metrics_test.json` 是否成对，以及 `results/attention_variants_test_summary.csv` 中列出的 run 是否都有 `test_eval/metrics_test.json`；`--output-zip path.zip` 在通过校验后生成 zip。归档内容意向如下（最终 zip 以脚本逻辑为准：包含未被 `.gitignore` 排除的仓库文件，并始终排除 `.git/`）。
+
+**Include**
+
+- 源代码目录：`small_try/`、`small_head/`、`small_swap/`、`base_1/`、`base_improve/`、`scripts/`、`experiments/`、`tests/`、`translate_cli/`
+- 固定划分与元数据：`data/splits/en_fr_50k_seed42/*.tsv`、`data/splits/en_fr_50k_seed42/split_metadata.json`
+- 词表：`data/tokenizer_*.json`、`data/tokenizer_metadata.json`
+- 各 run 的训练与配置摘要：`runs/<run>/metrics.json`、`resolved_config.json`、`training_meta.json`（若存在）
+- 各 run 的 **held-out test** 评估产物：`runs/<run>/test_eval/metrics_test.json`、`examples.md`、`predictions.jsonl`
+- 汇总与审计：`results/*.md`、`results/*.csv`、`results/*.json`
+- 文档：所有 `docs/*.md`，以及仓库根 `README.md`、`requirements.txt`、`.gitignore`
+
+**Exclude**
+
+- 所有模型检查点：`*.pt`、`*.pth`、`*.ckpt`、`*.safetensors`（与 `.gitignore` 一致）
+- W&B 本地缓存：`wandb/`、`wandb_cache*/`
+- 过大的完整平行语料（如 `data/EN-FR.txt`，可按需从发布渠道获取）
+- 通用日志：`*.log`、`logs/` 等
+- Python 缓存：`__pycache__/`、`.pytest_cache/`
+
 ## 数据划分（train / val / test）
 
 从完整平行语料生成独立测试集与 `split_metadata.json`：
