@@ -1,12 +1,19 @@
 {
-  "finished_at": "2026-04-29T03:55:10Z",
-  "baseline_metrics_path": "/root/autodl-tmp/runs/fast_dot/metrics.json",
-  "data_path": "/root/autodl-tmp/small_try/data/corpus_50k.tsv",
-  "report": "/root/autodl-tmp/small_head/report_head.txt",
-  "bundle": "/root/autodl-tmp/small_head/results/bundle_head_metrics.json",
-  "param_counts": "/root/autodl-tmp/small_head/results/param_counts.json",
+  "finished_at": "2026-05-05T13:09:19Z",
+  "split_protocol": "train_only_tokenizers",
+  "split_dir": "data/splits/en_fr_50k_seed42",
+  "train_path": "data/splits/en_fr_50k_seed42/train.tsv",
+  "val_path": "data/splits/en_fr_50k_seed42/val.tsv",
+  "test_path": "data/splits/en_fr_50k_seed42/test.tsv",
+  "tokenizer_metadata": "data/tokenizer_metadata.json",
+  "tokenizer_src": "data/tokenizer_src_train_only.json",
+  "tokenizer_tgt": "data/tokenizer_tgt_train_only.json",
+  "baseline_metrics_path": "runs/fast_dot/metrics.json",
+  "report": "small_head/report_head.txt",
+  "bundle": "small_head/results/bundle_head_metrics.json",
+  "param_counts": "small_head/results/param_counts.json",
   "runs": {
-    "baseline_mh_dot": "/root/autodl-tmp/runs/fast_dot",
-    "head_1h_dot": "/root/autodl-tmp/runs/head_1h_dot"
+    "baseline_mh_dot": "runs/fast_dot",
+    "head_1h_dot": "runs/head_1h_dot"
   }
 }

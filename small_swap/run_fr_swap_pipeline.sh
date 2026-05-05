@@ -73,42 +73,16 @@ log "[2/3] report_swap.txt（单 run；若曾训 additive 可传 --add 路径再
 python compare_runs.py \
   --dot "$REPO/runs/swap_fr_dot/metrics.json" \
   --out "$ROOT/report_swap.txt" \
-  --json-bundle "$ROOT/results/bundle_swap_metrics.json"
+  --json-bundle "$ROOT/results/bundle_swap_metrics.json" \
+  --prefer-test-eval
 
-log "[3/3] manifest_swap.json"
-export REPO
-export small_swap_root="$ROOT"
-export SWAP_TRAIN_PATH="$TRAIN_PATH"
-export SWAP_VAL_PATH="$VAL_PATH"
-export SWAP_TEST_PATH="$TEST_PATH"
-python - << 'PY'
-import json
-import os
-import time
-from pathlib import Path
-
-root = Path(os.environ["small_swap_root"])
-repo = Path(os.environ["REPO"]).resolve()
-ta = os.environ["SWAP_TRAIN_PATH"]
-va = os.environ["SWAP_VAL_PATH"]
-te = os.environ["SWAP_TEST_PATH"]
-
-m = {
-    "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    "direction": "fr_en",
-    "split_protocol": "same_as_small_try",
-    "train_path": str((repo / ta).resolve()),
-    "val_path": str((repo / va).resolve()),
-    "test_path": str((repo / te).resolve()),
-    "report": str((root / "report_swap.txt").resolve()),
-    "bundle": str((root / "results" / "bundle_swap_metrics.json").resolve()),
-    "runs": {
-        "dot": str((repo / "runs" / "swap_fr_dot").resolve()),
-    },
-}
-(root / "results" / "manifest_swap.json").write_text(json.dumps(m, indent=2), encoding="utf-8")
-print("MANIFEST_SWAP ->", root / "results/manifest_swap.json")
-PY
+log "[3/3] manifest_swap.json（仓库相对路径）"
+python "$REPO/scripts/write_pipeline_manifest.py" small_swap \
+  --repo-root "$REPO" \
+  --small-swap-dir "$ROOT" \
+  --train-path "$TRAIN_PATH" \
+  --val-path "$VAL_PATH" \
+  --test-path "$TEST_PATH"
 
 log "======== small_swap 全部成功 ========"
 log "查看: report_swap.txt | results/bundle_swap_metrics.json | $REPO/runs/swap_fr_dot/"

@@ -59,9 +59,10 @@ def main() -> None:
     )
     p.add_argument(
         "--prefer-test-eval",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="优先读取各 run 的 test_eval/metrics_test.json（held-out test）；"
-        "否则回落 metrics.json，并在标题标注 validation-sampled",
+        "使用 --no-prefer-test-eval 则回落 metrics.json",
     )
     args = p.parse_args()
 
@@ -95,9 +96,19 @@ def main() -> None:
                 f"1h_dot={prov_d1}；1h_add={prov_a1}"
             )
         lines.append(
-            "（held-out test = test_eval/metrics_test.json；"
-            "validation-sampled = 训练 metrics.json / eval_split）"
+            "（BLEU/chrF++/COMET 等指标来自 held-out test：各 run 的 test_eval/metrics_test.json）"
         )
+    else:
+        if a1 is None:
+            lines.append(
+                f"报告标题·数据来源（validation-sampled / metrics.json·eval_split）："
+                f"mh_baseline={prov_bl}；1h_dot={prov_d1}"
+            )
+        else:
+            lines.append(
+                f"报告标题·数据来源（validation-sampled / metrics.json·eval_split）："
+                f"mh_baseline={prov_bl}；1h_dot={prov_d1}；1h_add={prov_a1}"
+            )
     lines.append("=" * 72)
     lines.append("")
     lines.append("基线来自 small_try runs/fast_dot（n_heads=4, dot_product）。")
@@ -190,10 +201,15 @@ def main() -> None:
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(out.read_text(encoding="utf-8"))
 
+    try:
+        report_rel = out.resolve().relative_to(_REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        report_rel = str(out.resolve())
+
     bundle: dict = {
         "baseline_multi_head_dot": bl,
         "single_head_dot": d1,
-        "report_txt": str(out.resolve()),
+        "report_txt": report_rel,
     }
     if a1 is not None:
         bundle["single_head_additive"] = a1

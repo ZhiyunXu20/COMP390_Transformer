@@ -1,7 +1,7 @@
 ============================================================
 small_swap：法→英（子语料 + 小模型 + 短训练）
 报告标题·数据来源：dot_product=held-out test
-（held-out test = test_eval/metrics_test.json；validation-sampled = 训练 metrics.json / eval_split）
+（BLEU/chrF++/COMET 等指标来自 held-out test：各 run 的 test_eval/metrics_test.json）
 ============================================================
 
 说明：方向为法语→英语；语料列为 EN\tFR，训练时交换为 FR 源 / EN 目标。

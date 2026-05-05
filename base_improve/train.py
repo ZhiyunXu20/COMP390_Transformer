@@ -31,6 +31,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 from mt_eval import evaluate_generation_corpus, flatten_extra_for_log
+from train_runtime import configure_determinism, make_worker_init_fn
 
 
 def set_seed(seed: int) -> None:
@@ -52,6 +53,7 @@ def save_metrics_json(
     path: Path,
     cfg: Config,
     *,
+    determinism: dict | None = None,
     final_val_loss: float,
     final_bleu: float | None,
     best_bleu: float,
@@ -71,6 +73,7 @@ def save_metrics_json(
         return str(obj)
 
     payload = {
+        "determinism": jsonable(determinism) if determinism is not None else None,
         "run": "base_improve",
         "attention_type": cfg.attention_type,
         "final_val_loss": final_val_loss,
@@ -144,6 +147,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="禁用 torch.compile（调试用）",
     )
+    p.add_argument(
+        "--deterministic",
+        action="store_true",
+        help="更严格的可复现模式（cuDNN deterministic、确定性算法 warn_only）",
+    )
     return p.parse_args()
 
 
@@ -171,11 +179,13 @@ def main():
         cfg.use_torch_compile = False
 
     set_seed(cfg.seed)
+    det_state = configure_determinism(
+        cfg.seed, args.deterministic, cuda_available=torch.cuda.is_available()
+    )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     torch.set_float32_matmul_precision("high")
     if device.type == "cuda":
-        torch.backends.cudnn.benchmark = True
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
 
@@ -198,19 +208,26 @@ def main():
     }
     if cfg.num_workers > 0:
         loader_kw["prefetch_factor"] = 4
+        loader_kw["worker_init_fn"] = make_worker_init_fn(cfg.seed)
 
+    g_train = torch.Generator()
+    g_train.manual_seed(cfg.seed)
     train_loader = DataLoader(
         train_ds,
         batch_size=cfg.batch_size,
         shuffle=True,
         collate_fn=lambda b: collate_batch(b, pad_idx),
+        generator=g_train,
         **loader_kw,
     )
+    g_val = torch.Generator()
+    g_val.manual_seed(cfg.seed)
     val_loader = DataLoader(
         val_ds,
         batch_size=min(cfg.batch_size, 32),
         shuffle=False,
         collate_fn=lambda b: collate_batch(b, pad_idx),
+        generator=g_val,
         **loader_kw,
     )
 
@@ -491,6 +508,7 @@ def main():
     save_metrics_json(
         out / "metrics.json",
         cfg,
+        determinism=det_state,
         final_val_loss=final_vloss,
         final_bleu=final_bleu,
         best_bleu=best_bleu,

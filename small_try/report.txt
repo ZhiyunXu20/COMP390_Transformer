@@ -1,35 +1,36 @@
 ============================================================
 small_try：注意力机制对比（子语料 + 小模型 + 短训练）
-报告标题·数据来源：dot_product=validation-sampled；additive=held-out test
-（held-out test = test_eval/metrics_test.json；validation-sampled = 训练 metrics.json / eval_split）
+报告标题·数据来源：dot_product=held-out test；additive=held-out test
+（BLEU/chrF++/COMET 等指标来自 held-out test：各 run 的 test_eval/metrics_test.json）
 ============================================================
 
 说明：本报告用于课程/实验结论；与全数据长训的绝对 BLEU 不可直接等同。
+四舍五入对照（可与 results/attention_variants_test_summary.md 互验）：dot ≈ 16.07 BLEU，add ≈ 8.16 BLEU；dot 多 seed 均值 ≈ 15.80 BLEU 见 results/cross_seed_significance.md。
 
-点积 (dot_product)  data_path: /root/autodl-tmp/data/splits/en_fr_50k_seed42/train.tsv
+点积 (dot_product)  data_path: None
 加性 (additive)      data_path: None
 
 指标                              dot_product       additive
 ----------------------------------------------------------
-final_val_loss               3.255485598200792              —
-final_bleu                   16.94037313423783 8.163268278892572
-best_bleu_during_training    16.94037313423783 8.163268278892572
-optimizer_steps                        3000              —
+final_val_loss                            —              —
+final_bleu                   16.066693126898603 8.163268278892572
+best_bleu_during_training    16.066693126898603 8.163268278892572
+optimizer_steps                           —              —
 
-extra_metrics（两侧数据来源不一致：见报告标题；— 表示未写入）:
+extra_metrics（held-out test 终评，evaluate_test.py；— 表示未写入）:
                                 dot_product       additive
 ----------------------------------------------------------
-extra: chrF                         38.5531        26.1255
-extra: chrF++                       36.8851        24.6448
-extra: BERTScore F1                  0.8804         0.8535
-extra: COMET                         0.5073         0.4444
+extra: chrF                         37.6701        26.1255
+extra: chrF++                       36.0358        24.6448
+extra: BERTScore F1                  0.8784         0.8535
+extra: COMET                         0.5055         0.4444
 
-结论（基于 BLEU / final_bleu；指标口径：BLEU（两侧数据来源不同，见标题））：
-  缩放点积 (dot_product) 在本设定下 BLEU（两侧数据来源不同，见标题） 更高。
-  Δ(BLEU) = additive - dot = -8.7771
+结论（基于 BLEU / final_bleu；指标口径：held-out test BLEU）：
+  缩放点积 (dot_product) 在本设定下 held-out test BLEU 更高。
+  Δ(BLEU) = additive - dot = -7.9034
 
 多指标摘要（additive - dot）：
-  Δchrf=-12.4276 | Δchrfpp=-12.2403 | Δbertscore_f1=-0.0269 | Δcomet=-0.0629
+  Δchrf=-11.5446 | Δchrfpp=-11.3910 | Δbertscore_f1=-0.0249 | Δcomet=-0.0611
 
 撰写报告时可补充：数据子集规模、d_model/n_layers、max_steps、随机种子。
 ============================================================

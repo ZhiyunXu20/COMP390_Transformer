@@ -1,10 +1,14 @@
 {
-  "finished_at": "2026-04-29T04:07:59Z",
+  "finished_at": "2026-05-05T13:09:19Z",
   "direction": "fr_en",
-  "data": "/root/autodl-tmp/small_swap/data/corpus_50k.tsv",
-  "report": "/root/autodl-tmp/small_swap/report_swap.txt",
-  "bundle": "/root/autodl-tmp/small_swap/results/bundle_swap_metrics.json",
+  "split_protocol": "same_as_small_try",
+  "split_dir": "data/splits/en_fr_50k_seed42",
+  "train_path": "data/splits/en_fr_50k_seed42/train.tsv",
+  "val_path": "data/splits/en_fr_50k_seed42/val.tsv",
+  "test_path": "data/splits/en_fr_50k_seed42/test.tsv",
+  "report": "small_swap/report_swap.txt",
+  "bundle": "small_swap/results/bundle_swap_metrics.json",
   "runs": {
-    "dot": "/root/autodl-tmp/small_swap/runs/swap_fr_dot"
+    "dot": "runs/swap_fr_dot"
   }
 }

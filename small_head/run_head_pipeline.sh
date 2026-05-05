@@ -97,55 +97,20 @@ python compare_head_runs.py \
   --baseline "$BASELINE_METRICS" \
   --one-dot "$REPO/runs/head_1h_dot/metrics.json" \
   --out "$ROOT/report_head.txt" \
-  --json-bundle "$ROOT/results/bundle_head_metrics.json"
+  --json-bundle "$ROOT/results/bundle_head_metrics.json" \
+  --prefer-test-eval
 
-log "[3/3] manifest_head.json"
-export REPO
-export small_head_root="$ROOT"
-export BASELINE_METRICS
-export HEAD_TRAIN_PATH="$TRAIN_PATH"
-export HEAD_VAL_PATH="$VAL_PATH"
-export HEAD_TEST_PATH="$TEST_PATH"
-export HEAD_TOKENIZER_SRC="$TOKENIZER_SRC"
-export HEAD_TOKENIZER_TGT="$TOKENIZER_TGT"
-export HEAD_TOKENIZER_METADATA="$TOKENIZER_METADATA"
-python - << 'PY'
-import json
-import os
-import time
-from pathlib import Path
-
-root = Path(os.environ["small_head_root"])
-repo = Path(os.environ["REPO"]).resolve()
-bl = Path(os.environ["BASELINE_METRICS"]).resolve()
-
-def rp(rel: str) -> str:
-    return str((repo / rel).resolve())
-
-split_dir = repo / "data" / "splits" / "en_fr_50k_seed42"
-
-m = {
-    "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    "split_protocol": "train_only_tokenizers",
-    "split_dir": str(split_dir.resolve()),
-    "train_path": rp(os.environ["HEAD_TRAIN_PATH"]),
-    "val_path": rp(os.environ["HEAD_VAL_PATH"]),
-    "test_path": rp(os.environ["HEAD_TEST_PATH"]),
-    "tokenizer_metadata": rp(os.environ["HEAD_TOKENIZER_METADATA"]),
-    "tokenizer_src": rp(os.environ["HEAD_TOKENIZER_SRC"]),
-    "tokenizer_tgt": rp(os.environ["HEAD_TOKENIZER_TGT"]),
-    "baseline_metrics_path": str(bl),
-    "report": str((root / "report_head.txt").resolve()),
-    "bundle": str((root / "results" / "bundle_head_metrics.json").resolve()),
-    "param_counts": str((root / "results" / "param_counts.json").resolve()),
-    "runs": {
-        "baseline_mh_dot": str(bl.parent),
-        "head_1h_dot": str((repo / "runs" / "head_1h_dot").resolve()),
-    },
-}
-(root / "results" / "manifest_head.json").write_text(json.dumps(m, indent=2), encoding="utf-8")
-print("MANIFEST_HEAD ->", root / "results/manifest_head.json")
-PY
+log "[3/3] manifest_head.json（仓库相对路径）"
+python "$REPO/scripts/write_pipeline_manifest.py" small_head \
+  --repo-root "$REPO" \
+  --small-head-dir "$ROOT" \
+  --train-path "$TRAIN_PATH" \
+  --val-path "$VAL_PATH" \
+  --test-path "$TEST_PATH" \
+  --tokenizer-src "$TOKENIZER_SRC" \
+  --tokenizer-tgt "$TOKENIZER_TGT" \
+  --tokenizer-metadata "$TOKENIZER_METADATA" \
+  --baseline-metrics "$BASELINE_METRICS"
 
 log "======== small_head 全部成功 ========"
 log "查看: report_head.txt | results/bundle_head_metrics.json | results/manifest_head.json"

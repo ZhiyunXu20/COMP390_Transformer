@@ -7,7 +7,57 @@ import os
 import subprocess
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
+
+import torch
+
+
+def configure_determinism(
+    seed: int, deterministic: bool, *, cuda_available: bool
+) -> dict[str, Any]:
+    """Apply (or record) PyTorch/cuDNN determinism settings; return a JSON-safe summary.
+
+    When ``deterministic`` is False, enables ``cudnn.benchmark`` on CUDA to preserve
+    the project's default fast path, then returns the resulting cudnn flags.
+    """
+    del seed  # reserved for API symmetry; DataLoader uses cfg.seed separately
+    if deterministic:
+        cublas_ws = os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        torch.use_deterministic_algorithms(True, warn_only=True)
+        return {
+            "deterministic_requested": True,
+            "cudnn_benchmark": False,
+            "cudnn_deterministic": True,
+            "use_deterministic_algorithms": True,
+            "cublas_workspace_config": cublas_ws,
+            "torch_version": torch.__version__,
+        }
+
+    if cuda_available:
+        torch.backends.cudnn.benchmark = True
+    return {
+        "deterministic_requested": False,
+        "cudnn_benchmark": torch.backends.cudnn.benchmark,
+        "cudnn_deterministic": torch.backends.cudnn.deterministic,
+        "use_deterministic_algorithms": False,
+        "torch_version": torch.__version__,
+    }
+
+
+def make_worker_init_fn(seed: int) -> Callable[[int], None]:
+    """Re-seed NumPy and ``random`` inside DataLoader workers (with ``num_workers > 0``)."""
+
+    def _worker_init(worker_id: int) -> None:
+        import random
+
+        import numpy as np
+
+        np.random.seed(seed + worker_id)
+        random.seed(seed + worker_id)
+
+    return _worker_init
 
 
 def infer_repo_root(train_py_file: Path) -> Path:
@@ -98,15 +148,18 @@ def save_resolved_config_json(
     repo_root: Path,
     *,
     argv: list[str] | None = None,
+    determinism: dict[str, Any] | None = None,
 ) -> None:
     git_commit, git_dirty = git_commit_and_dirty(repo_root)
-    payload = {
+    payload: dict[str, Any] = {
         "repo_root": str(repo_root),
         "git_commit": git_commit,
         "git_dirty": git_dirty,
         "argv": list(argv or []),
         "resolved_config": config_to_jsonable(cfg),
     }
+    if determinism is not None:
+        payload["determinism"] = determinism
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "resolved_config.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
@@ -153,6 +206,11 @@ def register_shared_cli_arguments(p: Any) -> None:
         help="validation_loss / BLEU 使用的划分；训练仍只用 train",
     )
     p.add_argument("--no-wandb", action="store_true")
+    p.add_argument(
+        "--deterministic",
+        action="store_true",
+        help="更严格的可复现模式（cuDNN deterministic、确定性算法 warn_only、CUBLAS workspace 等）",
+    )
     p.add_argument(
         "--data-path",
         type=str,

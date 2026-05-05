@@ -45,9 +45,10 @@ def main():
     )
     p.add_argument(
         "--prefer-test-eval",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="优先读取各 run 的 test_eval/metrics_test.json（held-out test）；"
-        "否则使用 metrics.json，并在标题标注 validation-sampled",
+        "使用 --no-prefer-test-eval 则回落 metrics.json（训练时 eval_split，多为 val）",
     )
     args = p.parse_args()
 
@@ -68,12 +69,22 @@ def main():
             f"报告标题·数据来源：dot_product={prov_a}；additive={prov_b}"
         )
         lines.append(
-            "（held-out test = test_eval/metrics_test.json；"
-            "validation-sampled = 训练 metrics.json / eval_split）"
+            "（BLEU/chrF++/COMET 等指标来自 held-out test：各 run 的 test_eval/metrics_test.json）"
+        )
+    else:
+        lines.append(
+            f"报告标题·数据来源（validation-sampled / metrics.json·eval_split）："
+            f"dot_product={prov_a}；additive={prov_b}"
         )
     lines.append("=" * 60)
     lines.append("")
     lines.append("说明：本报告用于课程/实验结论；与全数据长训的绝对 BLEU 不可直接等同。")
+    if args.prefer_test_eval:
+        lines.append(
+            "四舍五入对照（可与 results/attention_variants_test_summary.md 互验）："
+            "dot ≈ 16.07 BLEU，add ≈ 8.16 BLEU；"
+            "dot 多 seed 均值 ≈ 15.80 BLEU 见 results/cross_seed_significance.md。"
+        )
     lines.append("")
     lines.append(f"点积 (dot_product)  data_path: {a.get('data_path')}")
     lines.append(f"加性 (additive)      data_path: {b.get('data_path')}")
@@ -140,10 +151,15 @@ def main():
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(out.read_text(encoding="utf-8"))
 
+    try:
+        report_rel = out.resolve().relative_to(_REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        report_rel = str(out.resolve())
+
     bundle = {
         "dot_product_metrics": a,
         "additive_metrics": b,
-        "report_txt": str(out.resolve()),
+        "report_txt": report_rel,
     }
     jp = Path(args.json_bundle)
     jp.parent.mkdir(parents=True, exist_ok=True)

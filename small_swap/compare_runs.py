@@ -46,9 +46,10 @@ def main():
     )
     p.add_argument(
         "--prefer-test-eval",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="优先读取各 run 的 test_eval/metrics_test.json（held-out test）；"
-        "否则回落 metrics.json，并在标题标注 validation-sampled",
+        "使用 --no-prefer-test-eval 则回落 metrics.json",
     )
     args = p.parse_args()
 
@@ -77,9 +78,19 @@ def main():
                 f"报告标题·数据来源：dot_product={prov_a}；additive={prov_b}"
             )
         lines.append(
-            "（held-out test = test_eval/metrics_test.json；"
-            "validation-sampled = 训练 metrics.json / eval_split）"
+            "（BLEU/chrF++/COMET 等指标来自 held-out test：各 run 的 test_eval/metrics_test.json）"
         )
+    else:
+        if single:
+            lines.append(
+                f"报告标题·数据来源（validation-sampled / metrics.json·eval_split）："
+                f"dot_product={prov_a}"
+            )
+        else:
+            lines.append(
+                f"报告标题·数据来源（validation-sampled / metrics.json·eval_split）："
+                f"dot_product={prov_a}；additive={prov_b}"
+            )
     lines.append("=" * 60)
     lines.append("")
     lines.append("说明：方向为法语→英语；语料列为 EN\\tFR，训练时交换为 FR 源 / EN 目标。")
@@ -174,7 +185,12 @@ def main():
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(out.read_text(encoding="utf-8"))
 
-    bundle: dict = {"dot_product_metrics": a, "report_txt": str(out.resolve())}
+    try:
+        report_rel = out.resolve().relative_to(_ROOT.resolve()).as_posix()
+    except ValueError:
+        report_rel = str(out.resolve())
+
+    bundle: dict = {"dot_product_metrics": a, "report_txt": report_rel}
     if b is not None:
         bundle["additive_metrics"] = b
     jp = Path(args.json_bundle)

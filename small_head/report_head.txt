@@ -1,7 +1,7 @@
 ========================================================================
 small_head：多头（基线） vs 全模型单头（点积为主；加性为可选第三列）
 报告标题·数据来源：mh_baseline=held-out test；1h_dot=held-out test
-（held-out test = test_eval/metrics_test.json；validation-sampled = 训练 metrics.json / eval_split）
+（BLEU/chrF++/COMET 等指标来自 held-out test：各 run 的 test_eval/metrics_test.json）
 ========================================================================
 
 基线来自 small_try runs/fast_dot（n_heads=4, dot_product）。

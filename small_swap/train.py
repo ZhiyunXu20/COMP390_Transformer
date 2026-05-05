@@ -34,8 +34,10 @@ from mt_eval import evaluate_generation_corpus, flatten_extra_for_log
 from train_runtime import (
     PATH_FIELDS_DEFAULT,
     apply_shared_cli_to_config,
+    configure_determinism,
     git_commit_and_dirty,
     infer_repo_root,
+    make_worker_init_fn,
     materialize_path_fields,
     register_shared_cli_arguments,
     save_resolved_config_json,
@@ -87,6 +89,7 @@ def save_metrics_json(
     path: Path,
     cfg: Config,
     *,
+    determinism: dict | None = None,
     final_val_loss: float,
     final_bleu: float | None,
     best_bleu: float,
@@ -107,6 +110,7 @@ def save_metrics_json(
         return str(obj)
 
     payload = {
+        "determinism": jsonable(determinism) if determinism is not None else None,
         "translation_direction": "fr_en",
         "swap_parallel_columns": getattr(cfg, "swap_parallel_columns", False),
         "attention_type": cfg.attention_type,
@@ -205,11 +209,11 @@ def main():
         )
 
     set_seed(cfg.seed)
+    det_state = configure_determinism(
+        cfg.seed, args.deterministic, cuda_available=torch.cuda.is_available()
+    )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     torch.set_float32_matmul_precision("high")
-    if device.type == "cuda":
-        torch.backends.cudnn.benchmark = True
 
     src_tok, tgt_tok = load_tokenizers(cfg)
     cfg.src_vocab_size = src_tok.get_vocab_size()
@@ -219,7 +223,9 @@ def main():
     run_name = cfg.wandb_run_name or f"{cfg.attention_type}_{int(time.time())}"
     out = Path(cfg.output_dir) / run_name
     out.mkdir(parents=True, exist_ok=True)
-    save_resolved_config_json(out, cfg, repo_root, argv=sys.argv)
+    save_resolved_config_json(
+        out, cfg, repo_root, argv=sys.argv, determinism=det_state
+    )
 
     if cfg.use_wandb and wandb is not None:
         wb_kw: dict = {"project": cfg.project_name, "name": run_name, "config": {**cfg.__dict__}}
@@ -233,24 +239,35 @@ def main():
     train_ds = TabParallelDataset(cfg, src_tok, tgt_tok, "train")
     eval_ds = TabParallelDataset(cfg, src_tok, tgt_tok, cfg.eval_split)
 
-    train_loader = DataLoader(
-        train_ds,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        pin_memory=device.type == "cuda",
-        collate_fn=lambda b: collate_batch(b, pad_idx),
-        persistent_workers=cfg.num_workers > 0,
-    )
-    eval_loader = DataLoader(
-        eval_ds,
-        batch_size=min(cfg.batch_size, 256),
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        pin_memory=device.type == "cuda",
-        collate_fn=lambda b: collate_batch(b, pad_idx),
-        persistent_workers=cfg.num_workers > 0,
-    )
+    g_train = torch.Generator()
+    g_train.manual_seed(cfg.seed)
+    train_loader_kw: dict = {
+        "batch_size": cfg.batch_size,
+        "shuffle": True,
+        "num_workers": cfg.num_workers,
+        "pin_memory": device.type == "cuda",
+        "collate_fn": lambda b: collate_batch(b, pad_idx),
+        "persistent_workers": cfg.num_workers > 0,
+        "generator": g_train,
+    }
+    if cfg.num_workers > 0:
+        train_loader_kw["worker_init_fn"] = make_worker_init_fn(cfg.seed)
+    train_loader = DataLoader(train_ds, **train_loader_kw)
+
+    g_eval = torch.Generator()
+    g_eval.manual_seed(cfg.seed)
+    eval_loader_kw: dict = {
+        "batch_size": min(cfg.batch_size, 256),
+        "shuffle": False,
+        "num_workers": cfg.num_workers,
+        "pin_memory": device.type == "cuda",
+        "collate_fn": lambda b: collate_batch(b, pad_idx),
+        "persistent_workers": cfg.num_workers > 0,
+        "generator": g_eval,
+    }
+    if cfg.num_workers > 0:
+        eval_loader_kw["worker_init_fn"] = make_worker_init_fn(cfg.seed)
+    eval_loader = DataLoader(eval_ds, **eval_loader_kw)
 
     train_wall_t0 = time.monotonic()
 
@@ -515,6 +532,7 @@ def main():
     save_metrics_json(
         out / "metrics.json",
         cfg,
+        determinism=det_state,
         final_val_loss=final_vloss,
         final_bleu=final_bleu,
         best_bleu=best_bleu,
@@ -536,6 +554,7 @@ def main():
     tm_path.write_text(
         json.dumps(
             {
+                "determinism": det_state,
                 "wall_time_seconds": wall_s,
                 "num_parameters": num_parameters,
                 "peak_gpu_memory_bytes": peak_bytes,

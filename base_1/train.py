@@ -31,6 +31,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 from mt_eval import evaluate_generation_corpus, flatten_extra_for_log
+from train_runtime import configure_determinism, make_worker_init_fn
 
 
 def set_seed(seed: int) -> None:
@@ -78,6 +79,7 @@ def save_metrics_json(
     path: Path,
     cfg: Config,
     *,
+    determinism: dict | None = None,
     final_val_loss: float,
     final_bleu: float | None,
     best_bleu: float,
@@ -96,6 +98,7 @@ def save_metrics_json(
         return str(obj)
 
     payload = {
+        "determinism": jsonable(determinism) if determinism is not None else None,
         "run": "base_1",
         "attention_type": cfg.attention_type,
         "final_val_loss": final_val_loss,
@@ -136,6 +139,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="关闭 W&B 解码器 cross-attention 热力图",
     )
+    p.add_argument(
+        "--deterministic",
+        action="store_true",
+        help="更严格的可复现模式（cuDNN deterministic、确定性算法 warn_only）",
+    )
     return p.parse_args()
 
 
@@ -161,11 +169,12 @@ def main():
         cfg.wandb_log_attention = False
 
     set_seed(cfg.seed)
+    det_state = configure_determinism(
+        cfg.seed, args.deterministic, cuda_available=torch.cuda.is_available()
+    )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     torch.set_float32_matmul_precision("high")
-    if device.type == "cuda":
-        torch.backends.cudnn.benchmark = True
 
     src_tok, tgt_tok = load_tokenizers(cfg)
     cfg.src_vocab_size = src_tok.get_vocab_size()
@@ -188,24 +197,35 @@ def main():
     train_ds = TabParallelDataset(cfg, src_tok, tgt_tok, "train")
     val_ds = TabParallelDataset(cfg, src_tok, tgt_tok, "val")
 
-    train_loader = DataLoader(
-        train_ds,
-        batch_size=cfg.batch_size,
-        shuffle=True,
-        num_workers=cfg.num_workers,
-        pin_memory=device.type == "cuda",
-        collate_fn=lambda b: collate_batch(b, pad_idx),
-        persistent_workers=cfg.num_workers > 0,
-    )
-    val_loader = DataLoader(
-        val_ds,
-        batch_size=min(cfg.batch_size, 32),
-        shuffle=False,
-        num_workers=cfg.num_workers,
-        pin_memory=device.type == "cuda",
-        collate_fn=lambda b: collate_batch(b, pad_idx),
-        persistent_workers=cfg.num_workers > 0,
-    )
+    g_train = torch.Generator()
+    g_train.manual_seed(cfg.seed)
+    tl_kw = {
+        "batch_size": cfg.batch_size,
+        "shuffle": True,
+        "num_workers": cfg.num_workers,
+        "pin_memory": device.type == "cuda",
+        "collate_fn": lambda b: collate_batch(b, pad_idx),
+        "persistent_workers": cfg.num_workers > 0,
+        "generator": g_train,
+    }
+    if cfg.num_workers > 0:
+        tl_kw["worker_init_fn"] = make_worker_init_fn(cfg.seed)
+    train_loader = DataLoader(train_ds, **tl_kw)
+
+    g_val = torch.Generator()
+    g_val.manual_seed(cfg.seed)
+    vl_kw = {
+        "batch_size": min(cfg.batch_size, 32),
+        "shuffle": False,
+        "num_workers": cfg.num_workers,
+        "pin_memory": device.type == "cuda",
+        "collate_fn": lambda b: collate_batch(b, pad_idx),
+        "persistent_workers": cfg.num_workers > 0,
+        "generator": g_val,
+    }
+    if cfg.num_workers > 0:
+        vl_kw["worker_init_fn"] = make_worker_init_fn(cfg.seed)
+    val_loader = DataLoader(val_ds, **vl_kw)
 
     model = Seq2SeqTransformer(cfg, pad_idx=pad_idx).to(device)
     criterion = nn.CrossEntropyLoss(ignore_index=pad_idx, label_smoothing=cfg.label_smoothing)
@@ -434,6 +454,7 @@ def main():
     save_metrics_json(
         out / "metrics.json",
         cfg,
+        determinism=det_state,
         final_val_loss=final_vloss,
         final_bleu=final_bleu,
         best_bleu=best_bleu,

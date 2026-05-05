@@ -24,6 +24,7 @@ echo ">>> [4/4] 生成 report.txt"
 python compare_runs.py \
   --dot "${REPO}/runs/fast_dot/metrics.json" \
   --add "${REPO}/runs/fast_add/metrics.json" \
-  --out "${SCRIPT_DIR}/report.txt"
+  --out "${SCRIPT_DIR}/report.txt" \
+  --prefer-test-eval
 
 echo "完成。请查看 report.txt 与各 run 目录下 metrics.json / best.pt"

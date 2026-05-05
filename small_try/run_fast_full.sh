@@ -47,7 +47,7 @@ EXTRA=()
 [[ -n "${TRAIN_VAL_EVERY:-}" ]] && EXTRA+=(--val-every "${TRAIN_VAL_EVERY}")
 [[ "${EVAL_LIGHT:-}" == 1 ]] && EXTRA+=(--eval-light)
 BATCH_OPT=()
-[[ -n "${TRAIN_BATCH_SIZE:-}" ]] && BATCH_OPT+=(--batch-size "$TRAIN_BATCH_SIZE}")
+[[ -n "${TRAIN_BATCH_SIZE:-}" ]] && BATCH_OPT+=(--batch-size "$TRAIN_BATCH_SIZE")
 
 COMMON_TRAIN=(
   --train-path "$TRAIN_PATH"
@@ -80,51 +80,19 @@ python compare_runs.py \
   --dot "$REPO/runs/fast_dot/metrics.json" \
   --add "$REPO/runs/fast_add/metrics.json" \
   --out report.txt \
-  --json-bundle results/bundle_metrics.json
+  --json-bundle results/bundle_metrics.json \
+  --prefer-test-eval
 
-log "[5/5] 写入流水线清单 manifest.json"
-export REPO
-export small_try_root="$ROOT"
-export TRY_TRAIN_PATH="$TRAIN_PATH"
-export TRY_VAL_PATH="$VAL_PATH"
-export TRY_TEST_PATH="$TEST_PATH"
-export TRY_TOKENIZER_SRC="$TOKENIZER_SRC"
-export TRY_TOKENIZER_TGT="$TOKENIZER_TGT"
-export TRY_TOKENIZER_METADATA="$TOKENIZER_METADATA"
-python - << 'PY'
-import json
-import os
-import time
-from pathlib import Path
-
-root = Path(os.environ["small_try_root"])
-repo = Path(os.environ["REPO"]).resolve()
-
-def rp(rel: str) -> str:
-    return str((repo / rel).resolve())
-
-split_dir = repo / "data" / "splits" / "en_fr_50k_seed42"
-
-m = {
-    "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    "split_protocol": "train_only_tokenizers",
-    "split_dir": str(split_dir.resolve()),
-    "train_path": rp(os.environ["TRY_TRAIN_PATH"]),
-    "val_path": rp(os.environ["TRY_VAL_PATH"]),
-    "test_path": rp(os.environ["TRY_TEST_PATH"]),
-    "tokenizer_metadata": rp(os.environ["TRY_TOKENIZER_METADATA"]),
-    "tokenizer_src": rp(os.environ["TRY_TOKENIZER_SRC"]),
-    "tokenizer_tgt": rp(os.environ["TRY_TOKENIZER_TGT"]),
-    "report": str((root / "report.txt").resolve()),
-    "bundle": str((root / "results" / "bundle_metrics.json").resolve()),
-    "runs": {
-        "dot": str((repo / "runs" / "fast_dot").resolve()),
-        "add": str((repo / "runs" / "fast_add").resolve()),
-    },
-}
-(root / "results" / "manifest.json").write_text(json.dumps(m, indent=2), encoding="utf-8")
-print("MANIFEST ->", root / "results/manifest.json")
-PY
+log "[5/5] 写入流水线清单 manifest.json（仓库相对路径）"
+python "$REPO/scripts/write_pipeline_manifest.py" small_try \
+  --repo-root "$REPO" \
+  --small-try-dir "$ROOT" \
+  --train-path "$TRAIN_PATH" \
+  --val-path "$VAL_PATH" \
+  --test-path "$TEST_PATH" \
+  --tokenizer-src "$TOKENIZER_SRC" \
+  --tokenizer-tgt "$TOKENIZER_TGT" \
+  --tokenizer-metadata "$TOKENIZER_METADATA"
 
 log "======== 全部成功 ========"
 log "查看: report.txt | results/bundle_metrics.json | $REPO/runs/fast_*/"
