@@ -143,6 +143,11 @@ def main() -> None:
     )
     p.add_argument("--cpu", action="store_true")
     p.add_argument(
+        "--eval-light",
+        action="store_true",
+        help="仅 BLEU/chrF++，跳过 BERTScore/COMET（与训练期 --eval-light 对齐的快评）",
+    )
+    p.add_argument(
         "--wandb-eval",
         action="store_true",
         help="将 metrics_test.json 核心标量以 test/* 前缀上传到 W&B（默认关闭）",
@@ -244,21 +249,22 @@ def main() -> None:
     )
 
     bleu, bleu_sig = _bleu_score_and_signature(hyps, refs)
+    use_heavy = not args.eval_light
     extra = compute_extra_metrics(
         hyps,
         refs,
         srcs,
         optimizer_step=0,
         use_chrf=True,
-        use_bertscore=True,
-        use_comet=True,
+        use_bertscore=use_heavy,
+        use_comet=use_heavy,
         heavy_every=None,
         bertscore_lang=getattr(cfg, "eval_bertscore_lang", "fr"),
         bertscore_model_type=getattr(cfg, "eval_bertscore_model_type", None),
         bertscore_device=getattr(cfg, "eval_bertscore_device", None),
         comet_model=getattr(cfg, "eval_comet_model", "Unbabel/wmt22-comet-da"),
         comet_gpus=getattr(cfg, "eval_comet_gpus", None),
-        force_heavy=True,
+        force_heavy=use_heavy,
     )
 
     em = exact_match_rate(hyps, refs)

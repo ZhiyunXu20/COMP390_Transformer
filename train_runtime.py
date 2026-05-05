@@ -195,6 +195,14 @@ def register_shared_cli_arguments(p: Any) -> None:
     )
     p.add_argument("--n-heads", type=int, default=None)
     p.add_argument("--seed", type=int, default=None)
+    p.add_argument(
+        "--learning-rate",
+        "--lr",
+        type=float,
+        default=None,
+        dest="learning_rate",
+        help="优化器学习率（默认使用各 pkg Config）",
+    )
     p.add_argument("--max-steps", type=int, default=None)
     p.add_argument("--batch-size", type=int, default=None, dest="batch_size")
     p.add_argument("--bleu-sample-size", type=int, default=None)
@@ -244,6 +252,8 @@ def apply_shared_cli_to_config(cfg: Any, args: Any) -> None:
         cfg.n_heads = args.n_heads
     if getattr(args, "seed", None) is not None:
         cfg.seed = args.seed
+    if getattr(args, "learning_rate", None) is not None:
+        cfg.learning_rate = float(args.learning_rate)
     if getattr(args, "max_steps", None) is not None:
         cfg.max_steps = args.max_steps
     if getattr(args, "batch_size", None) is not None:

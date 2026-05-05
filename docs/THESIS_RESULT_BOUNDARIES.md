@@ -56,6 +56,7 @@ Exploratory variants are reported as preliminary single-seed evidence, not as st
 - **不要**在 **仅单 seed、且 |ΔBLEU| < 1.0** 的探索性 **`var_*`** 两两对比中声称一方「显著更好」；此类对比 **未做** 多重 seed 或句子级 bootstrap 推断。
 - **不要**将 **additive** 表述为 **「本质上劣于 dot-product」**：在当前证据下只能表述为 **在固定 50k 子集、bf16 训练栈、匹配超参的 EN→FR 设定下**，additive 的 held-out test 指标 **系统性地低于** dot baseline；跨任务/规模的推广需另证。
 - **不要**把 **仅 cross-seed Welch** 或 **仅句子级 bootstrap** 之一说成已穷尽所有不确定性；**dot vs additive** 主结论应 **同时引用** `results/cross_seed_significance.*`（训练 seed 间）与 `scripts/significance_test.py` / `results/significance_fast_dot_vs_fast_add.md`（同一 test 句子上重采样）。
+- **不要**将 **dot vs additive** 的差距说成 **「纯机制 / purely mechanism-driven」** 而不同时说明：**主对比中 additive 与 dot 的核心超参已对齐**，且仓库内有 **additive 学习率扫描**（**`results/additive_lr_sweep.md`**、**`results/additive_lr_sweep.csv`**；`seed=42`、`max_steps=1500` 等设定见该 Readout）；在部分训练预算下，**仅调学习率**即可明显改变 additive 的 held-out 指标。
 
 ### Forbidden claims
 
@@ -64,6 +65,7 @@ Exploratory variants are reported as preliminary single-seed evidence, not as st
 - Do not rank bilinear vs gated_dot_additive vs fast_dot if the BLEU gap is below approximately 1.0.
 - Do not directly compare swap_fr_dot BLEU with EN→FR runs as if they were the same task.
 - Do not present the main run's single-seed BLEU 16.07 as the headline number; use 15.80 ± 0.52 (n=3) instead.
+- Do not describe the dot–additive gap as **purely mechanism-driven** without also noting **`fast_add` matched core hyperparameters to `fast_dot`** and pointing to the **additive LR sweep** (**`results/additive_lr_sweep.md`**, **`results/additive_lr_sweep.csv`**; see that Readout for `seed=42`, `max_steps=1500`, and eval-light protocol). Under shorter budgets, **learning-rate alone** can move additive test metrics materially.
 
 ---
 
