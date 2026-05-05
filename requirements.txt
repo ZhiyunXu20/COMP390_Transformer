@@ -1,0 +1,18 @@
+# Root install list for small_try / small_head / small_swap pipelines, scripts, and tests.
+# Pin lower bounds for reproducibility; relax upper bounds where safe.
+
+torch>=2.0,<3
+numpy>=1.24
+tokenizers>=0.15
+sentencepiece>=0.2
+sacrebleu>=2.6,<3.0
+bert-score>=0.3.13
+unbabel-comet>=2.2.0
+wandb>=0.16
+tqdm>=4.66
+matplotlib>=3.7
+seaborn>=0.13
+entmax>=0.1
+scipy>=1.9
+mpmath>=1.3
+pytest>=7.0
