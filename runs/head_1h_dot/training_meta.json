@@ -1,0 +1,14 @@
+{
+  "num_parameters": 30442800,
+  "wall_time_seconds": null,
+  "peak_gpu_memory_bytes": null,
+  "peak_gpu_memory_mib": null,
+  "run_directory": "/root/autodl-tmp/runs/head_1h_dot",
+  "metadata_repaired": true,
+  "repair_reason": "original training_meta.json was not present in archive; reconstructed from resolved_config.json without re-running training",
+  "repaired_at": "2026-05-05T12:44:12.464384Z",
+  "repaired_from": [
+    "resolved_config.json",
+    "model parameter count"
+  ]
+}
