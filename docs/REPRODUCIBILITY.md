@@ -14,7 +14,7 @@
 - 各 run 的训练与配置摘要：`runs/<run>/metrics.json`、`resolved_config.json`、`training_meta.json`（若存在）
 - 各 run 的 **held-out test** 评估产物：`runs/<run>/test_eval/metrics_test.json`、`examples.md`、`predictions.jsonl`
 - 汇总与审计：`results/*.md`、`results/*.csv`、`results/*.json`
-- 文档：所有 `docs/*.md`，以及仓库根 `README.md`、`requirements.txt`、`.gitignore`
+- 文档：所有 `docs/*.md`，以及仓库根 `README.md`、各子包 `requirements.txt`、`.gitignore`
 
 **Exclude**
 
@@ -23,6 +23,54 @@
 - 过大的完整平行语料（如 `data/EN-FR.txt`，可按需从发布渠道获取）
 - 通用日志：`*.log`、`logs/` 等
 - Python 缓存：`__pycache__/`、`.pytest_cache/`
+
+## Result tables must be regenerated after new runs
+
+在刷新或新增 `runs/` 后，派生 **`results/*.md` / CSV / JSON** 时应按下列顺序执行（**A2 → A5**；不要手改汇总表中的数字）：
+
+**A2 — Runs 健康与状态**（`results/runs_sanity_report.{md,json}`；汇总表 `status` 列依赖此输出）：
+
+```bash
+cd "$REPO"
+python scripts/sanity_check_runs.py
+```
+
+**A3 — 修补缺失的 `training_meta.json`（若需要）**（仅写入保守字段如 `num_parameters`；默认针对 `head_1h_dot`、`swap_fr_dot`）：
+
+```bash
+cd "$REPO"
+python scripts/repair_missing_training_meta.py
+```
+
+**A4 — Attention 变体 test 汇总 + 公平性审计**
+
+```bash
+cd "$REPO"
+python scripts/summarize_attention_variants.py \
+  --runs fast_dot fast_add head_1h_dot swap_fr_dot var_bilinear var_gated_dot_additive \
+    var_sparsemax var_entmax15 var_local_window var_global_local
+
+python scripts/check_variant_experiment_fairness.py \
+  --runs fast_dot fast_add head_1h_dot swap_fr_dot var_bilinear var_gated_dot_additive \
+    var_sparsemax var_entmax15 var_local_window var_global_local
+```
+
+**A5 — Cross-seed Welch（dot vs additive，per-seed held-out test 指标）**（`results/cross_seed_significance.{md,json}`；输入默认 `results/ablation_per_seed.csv`）：
+
+```bash
+cd "$REPO"
+python scripts/cross_seed_significance.py
+```
+
+不要编辑 `runs/*/test_eval/metrics_test.json`；仅重跑上述脚本以刷新派生汇总。
+
+## Existing runs determinism caveat
+
+本 archive 中既有 run 在训练时**未**统一开启严格确定性开关（例如 `cudnn.benchmark=True`，且未启用 `use_deterministic_algorithms`）。**fast_dot** 跨 seed 的 BLEU 标准差约 **0.52** 反映 **随机种子、dropout、数据打乱与 cuDNN 非确定性** 的共同方差。今后若以 **`--deterministic`** 启动新训练，相关设置会写入该次 run 的 **`resolved_config.json`**（`determinism` 字段）、**`metrics.json`** 与 **`training_meta.json`**。
+
+## Determinism flag for future runs
+
+Existing runs in this archive were trained without `--deterministic`. The cross-seed standard deviation of 0.52 BLEU on fast_dot (n=3) reflects combined variance from random initialization, dropout, data shuffling, and cuDNN nondeterminism. To reduce this variance in future experiments, train with e.g. `python small_try/train.py --deterministic ...`（`small_head` / `small_swap` / `base_1` / `base_improve` 同样提供该标志）。`--deterministic` 可能使训练略慢（常见幅度约 **10%** 以内，视 GPU 与 batch 而定）。
 
 ## 数据划分（train / val / test）
 

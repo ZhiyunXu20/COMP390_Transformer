@@ -1,6 +1,8 @@
 # small_swap BLEU 审计（与 small_try dot_product final_bleu 完全相同）
 
-本文档对应「命令 9」审计结论：**静态代码审查未发现 small_swap 错误复用 small_try 的 metrics 或错误拼接 BLEU 语料的缺陷**。若在报告中看到两个方向的 `final_bleu` **数值完全一致**，应优先从 **文件路径、运行目录、人工拷贝与打印精度** 等层面核对，而不是推断「FR→EN 与 EN→FR 可互换」。
+本文档对应「命令 9」审计结论：**静态代码审查未发现 small_swap 错误复用 small_try 的 metrics 或错误拼接 BLEU 语料的缺陷**。若在报告中看到两个方向的 **`metrics.json` 内 `final_bleu`** **数值完全一致**，应优先从 **文件路径、运行目录、人工拷贝与打印精度** 等层面核对，而不是推断「FR→EN 与 EN→FR 可互换」。
+
+**Held-out test 口径**：课程/论文主表若以 `evaluate_test.py` 为准，**`runs/swap_fr_dot/test_eval/metrics_test.json`** 中 BLEU 约为 **9.76**（与 **`results/attention_variants_test_summary.md`** 一致）；请勿与 EN→FR 的 **`fast_dot`** test BLEU（约 **16.07**）混为同一任务下的横向排名。
 
 ---
 

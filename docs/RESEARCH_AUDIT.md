@@ -6,6 +6,17 @@
 
 ---
 
+## v3 status update
+
+- **core dot vs additive multi-seed comparison: COMPLETED**（3 seeds each）；见 **`results/ablation_summary.md`** 与 **`results/cross_seed_significance.md`**
+- **exploratory variants: 6 trained**（1 seed each）；见 **`results/attention_variants_test_summary.md`**
+- **`var_local_window`：训练数值失败**；见 **`results/runs_sanity_report.md`**
+- **`head_1h_dot`, `swap_fr_dot` 的 `training_meta`**：已用 **仅参数量** 的保守修补（`wall_time` 与 GPU 显存不可用）；见 **`results/variant_fairness_audit.md`**
+- **multi-seed 与 `var_*` 缺少 predictions**：原因为旧版 `.gitignore` 白名单；已在 v3 修复
+- **BLEU range sanity check**：见 **`docs/THESIS_RESULT_BOUNDARIES.md`** 中 **「External reference points (context only)」**（外部基线仅作量级对照，不得与本仓库 run 混排排名）
+
+---
+
 ## 1. 本项目实际实现了什么（不夸大）
 
 - **序列到序列 Transformer（Encoder–Decoder）**：嵌入 + 位置编码（`small_try/model.py` `Seq2SeqTransformer`）、每层 Pre-LN（`EncoderLayer` / `DecoderLayer` 中先 `LayerNorm` 再子层）。
@@ -87,7 +98,8 @@
 
 ## 6. `small_head` 单头实验的解释风险
 
-- **公平性**：单头时 `d_k = d_model // n_heads`（`small_try/attention.py` `489–490`）。若仅将 `n_heads` 改为 1 而保持 `d_model`，则 **每头维度变大**，与多头基线的 **per-head 宽度不同**，比较的是「不同分解方式的 MHA」，而非「仅 head 数变化」。
+- **参数量公平性 — RESOLVED**：`head_1h_dot` 采用 **`n_heads=1` 且 `d_k = d_model`（256）**（单头占据全部分头维度），**总参数量与多头 dot baseline 一致（30,442,800）**。审计依据：**`results/variant_fairness_audit.md`**（`head_1h_dot` 相对 `fast_dot` 的 `parameter_delta_percent = 0`）。旧版文档中「hidden size / `d_k` 与多头不对齐 ⇒ 参数量不可靠」的警告在此设定下 **已不成立**。
+- **解释性边界（仍成立）**：比较的是 **1 个宽头** vs **4 个窄头** 的分解方式，而非「仅改变 head 数目、其余张量形状不变」的单纯计数消融；叙事中仍需明确 head 拓扑差异。
 - **默认配置**：`small_head/config.py` 仍默认 `n_heads: int = 4`（`39:46`）；单头需用户在 CLI/配置中显式改为 `1`，否则并非单头实验。
 - **注意力可视化**：W&B 热力图路径依赖 `decoder_cross`（`small_try/train.py` `363:376`）；单头时图为 1 列 head，解释「分工」受限——与多头对比时需声明。
 
@@ -125,9 +137,9 @@
 
 ### P0（影响结论可信度）
 
-1. **统一报告口径**：明确论文表格中的 BLEU/chrF/COMET 来自 **`metrics.json`（默认 val）** 还是 **`ablation_lib` / `--eval-split test`**；禁止混用而不标注。
+1. **统一报告口径**：明确论文表格中的 BLEU/chrF/COMET 来自 **`metrics.json`（默认 val）** 还是 **`test_eval/metrics_test.json` / `evaluate_test.py`**；禁止混用而不标注。
 2. **审慎对待 cross-direction 数值**：对 §7 中红色标注的「完全相同」进行溯源核查。
-3. **`small_head` 单头 vs 多头**：若主张「仅 head 数变化」，需固定可比维度（例如匹配参数量或固定 `d_k`），并在文中写明当前实现实际改变的是 `d_k`（见 §6）。
+3. **`small_head` 单头 vs 多头**：参数量已与多头对齐（见 §6）；若主张「仅 head 数变化的孤立效应」，仍须交代 head 分解语义，避免读者误读为单一因子实验。
 
 ### P1（可复现性与工程卫生）
 

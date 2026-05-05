@@ -16,8 +16,8 @@
 ### Single-head vs multi-head
 
 - **任务**：在可比栈（如 `small_head` 与 `small_try`）下对比 **`n_heads=1`** 与 **`n_heads>1`**（默认 baseline 多为 4 头）。
-- **叙事限制**：单头时 **`d_k = d_model // n_heads`** 变大，与多头基线的 **per-head 维度不同**；比较的是「不同 head 分解」而非「仅 head 数目」的孤立效应（见 **`docs/RESEARCH_AUDIT.md`** §6）。
-- **证据示例**：`runs/head_1h_dot`（单头）与 `runs/fast_dot`（多头）等需在文中注明上述公平性 caveat。
+- **参数量公平性（已对齐）**：`runs/head_1h_dot` 使用单头、**`d_k = d_model`**（256），总参数量与多头 dot baseline **一致**（30,442,800；见 **`results/variant_fairness_audit.md`**）。叙事上仍是比较 **不同的 multi-head 分解**（1 个宽头 vs 4 个窄头），而非仅孤立改变 head 数目。
+- **证据示例**：`runs/head_1h_dot`（单头）与 `runs/fast_dot`（多头）需在文中注明 head 数与上述解释性边界。
 
 ### FR→EN swap（`small_swap`）
 
@@ -27,18 +27,20 @@
 
 ---
 
-## 2. Implemented but not yet experimentally validated variants（已实现、尚未完成系统性实验验证）
+## 2. Exploratory single-seed results（探索性单-seed 结果）
 
-以下 **`attention_type`** 在 **`small_try` / `small_head` / `small_swap`** 的 `attention.py` 中**已实现**，并可由 **`experiments/run_untrained_attention_variants.py`** 调度到 **`runs/var_*`**；**默认 baseline 提交快照中不要求**已具备与 dot/add 同等强度的多 seed、完整 test 终评汇总。
+以下 **`attention_type`** 在 **`small_try`** 等路径中**已实现**，并以 **`runs/var_*`** 等形式完成了 **各 1 个 seed** 的全流程训练与 held-out test 终评；汇总表见 **`results/attention_variants_test_summary.md`**。
 
 | Variant | 备注 |
 |---------|------|
-| `bilinear` | 探索性打分形式 |
-| `gated_dot_additive` | 探索性门控混合打分 |
-| `sparsemax` | 归一化改为 sparsemax（稠密分数矩阵上） |
-| `entmax15` | 归一化为 entmax α=1.5（稠密分数矩阵上） |
-| `local_window` | **稠密**结构掩码表达局部先验，非稀疏核 |
-| `global_local` | **稠密**结构掩码表达全局锚点 + 局部带，非 ETC 类实现 |
+| `bilinear` | 探索性打分形式；`var_bilinear` |
+| `gated_dot_additive` | 探索性门控混合打分；`var_gated_dot_additive` |
+| `sparsemax` | 归一化改为 sparsemax（稠密分数矩阵上）；`var_sparsemax` |
+| `entmax15` | 归一化为 entmax α=1.5（稠密分数矩阵上）；`var_entmax15` |
+| `local_window` | **稠密**结构掩码；本 archive 中 **`var_local_window`** 训练数值失败（NaN），见 **`results/runs_sanity_report.md`** |
+| `global_local` | **稠密**结构掩码；`var_global_local` |
+
+Exploratory variants are reported as preliminary single-seed evidence, not as statistically ranked alternatives. The 7.6 BLEU dot-vs-additive gap is supported by 3-seed evidence (Welch t-test); single-seed variant comparisons are not statistically tested.
 
 汇总 **仅读 test_eval** 的表格可由 **`scripts/summarize_attention_variants.py`** 生成（`results/attention_variants_test_summary.*`）。
 
@@ -51,6 +53,46 @@
 - **不要**声称实现了 **CV 意义上的 spatial / channel attention**；对象为序列 token 注意力。
 - **不要**将 **`runs/<run>/metrics.json`** 中的 **`final_bleu`** 等直接当作 **test 集最终结果** 报道；默认 **`eval_split=val`** 时其为 **验证集**语义（见 **`docs/RESEARCH_AUDIT.md`** §4）。Test 报告须基于 **`evaluate_test.py`** → **`test_eval/metrics_test.json`** 或等价独立 test 流水线。
 - **不要**引用历史口径下的 **BLEU 66/76** 一类极高数值 **除非**：明确绑定 **旧协议 / 旧语料 / 旧预处理**，并与当前 SacreBLEU + 本仓库划分 **分段呈现**，避免读者误认为与本文同一实验设定可比。
+- **不要**在 **仅单 seed、且 |ΔBLEU| < 1.0** 的探索性 **`var_*`** 两两对比中声称一方「显著更好」；此类对比 **未做** 多重 seed 或句子级 bootstrap 推断。
+- **不要**将 **additive** 表述为 **「本质上劣于 dot-product」**：在当前证据下只能表述为 **在固定 50k 子集、bf16 训练栈、匹配超参的 EN→FR 设定下**，additive 的 held-out test 指标 **系统性地低于** dot baseline；跨任务/规模的推广需另证。
+- **不要**把 **仅 cross-seed Welch** 或 **仅句子级 bootstrap** 之一说成已穷尽所有不确定性；**dot vs additive** 主结论应 **同时引用** `results/cross_seed_significance.*`（训练 seed 间）与 `scripts/significance_test.py` / `results/significance_fast_dot_vs_fast_add.md`（同一 test 句子上重采样）。
+
+### Forbidden claims
+
+- Do not claim local_window mechanism failed in general; only this bf16 training run failed numerically (val_loss=NaN). The mechanism may work in fp32 or with different mask construction.
+- Do not claim true Longformer / BigBird / ETC sparse-kernel implementation. Our local_window and global_local are dense L×L attention with structural masks added to logits.
+- Do not rank bilinear vs gated_dot_additive vs fast_dot if the BLEU gap is below approximately 1.0.
+- Do not directly compare swap_fr_dot BLEU with EN→FR runs as if they were the same task.
+- Do not present the main run's single-seed BLEU 16.07 as the headline number; use 15.80 ± 0.52 (n=3) instead.
+
+---
+
+## Statistical claims supported by current evidence
+
+统计结论以 **`results/cross_seed_significance.md`**（及同目录 JSON）为权威表述；以下为该文件的摘要，便于论文交叉引用。
+
+本仓库对 **dot_product vs additive**（`fast_dot` vs `fast_add`）的统计支撑是 **双轨** 的，二者 **互补、不可替代**：
+
+1. **Cross-seed（训练 seed 变异）**：对 **`results/ablation_per_seed.csv`** 中 **n=3 vs n=3** 的 per-seed **held-out test** 指标做 **Welch t 检验**（脚本 **`scripts/cross_seed_significance.py`**，输出 **`results/cross_seed_significance.{md,json}`**）。当前快照量级示意为：
+   - **BLEU**：Δ ≈ **7.60**，Welch **t ≈ 15.1**，**df ≈ 3.7**，双尾 **p ≪ 0.05**（详见 JSON，统计后端可能为 SciPy 或 mpmath）。
+   - **chrF++**：Δ ≈ **10.35**，**t ≈ 12.6**，**df ≈ 2.8**。
+   - **COMET**：Δ ≈ **0.055**，**t ≈ 11.7**，**df ≈ 2.7**。
+
+2. **Sentence-level paired bootstrap（单模型 test 抽样变异）**：对 **主 run**（如 `runs/fast_dot` vs `runs/fast_add`）的 **`test_eval/predictions.jsonl`** 做 **配对重采样**（**`scripts/significance_test.py`**，报告示例 **`results/significance_fast_dot_vs_fast_add.md`**）。当前快照：**ΔBLEU ≈ +7.90**，bootstrap **95% CI ≈ [7.50, 8.33]**（与脚本输出一致为准）。
+
+**单 seed 的 `var_*` 探索性变体之间的优劣**：仅在 `results/attention_variants_test_summary.*` 中 **描述性** 呈现；**未** 与 dot/add 一样做 cross-seed 或成对 bootstrap **推断检验**，不得在正文中写成已广泛显著或普适排序结论。
+
+---
+
+## External reference points (context only)
+
+These external reference points are cited for **SCALE CONTEXT only**, not for direct ranking against our runs.
+
+- **Vaswani et al. 2017** (*Attention is All You Need*), Table 2: WMT'14 EN–FR **base** model = **38.1 BLEU**; **big** model = **41.8 BLEU**. Trained on ~4.5M sentence pairs, beam search width = 4, length penalty 0.6.
+- **Typical fairseq IWSLT'17 EN–FR tutorial** result: **30+ BLEU** on ~225k pairs with beam search.
+- **Our setup**: 50k subset (~1.1% of WMT'14 scale), 3000 training steps, **greedy** decoding, `max_seq_len` = 96. Scores are **expected to be significantly lower** than the references above.
+
+**Therefore:** our **15.80 ± 0.52 BLEU** on `fast_dot` (n=3, held-out test) is **consistent with the expected operational range** for a small-data + greedy setup—**not** a sign of a broken model. **Direct numerical comparison with Vaswani et al. 2017 is INVALID** due to different data scale, decoding, and training budget.
 
 ---
 
