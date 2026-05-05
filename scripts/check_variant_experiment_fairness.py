@@ -223,6 +223,9 @@ def audit_one_run(
         "parameter_count_source": param_src,
         "notes": "; ".join(notes_parts),
         "pkg_resolved": pkg,
+        "training_meta_repaired": bool(
+            training_meta and training_meta.get("metadata_repaired") is True
+        ),
     }
     return row_core
 
@@ -268,11 +271,15 @@ def classify_row(
     if missing_tm:
         flags.append("missing_training_meta")
 
+    repaired_tm = bool(row.get("training_meta_repaired"))
+    if repaired_tm:
+        flags.append("repaired_training_meta")
+
     n_heads_mismatch = any(f.startswith(N_HEADS_KEY) for f in row["mismatched_fields"])
 
     if has_fail:
         status = "FAIL"
-    elif parameter_changed or missing_tm or n_heads_mismatch:
+    elif parameter_changed or missing_tm or n_heads_mismatch or repaired_tm:
         status = "WARN"
     else:
         status = "PASS"
@@ -409,6 +416,7 @@ def main() -> None:
                 "notes": row["notes"],
                 "parameter_count_source": row["parameter_count_source"],
                 "flags": flags,
+                "training_meta_repaired": row.get("training_meta_repaired", False),
             }
         )
 
@@ -442,7 +450,9 @@ def main() -> None:
         "- **PASS**: key training/eval fields match reference (except `attention_type`), "
         "`test_eval/metrics_test.json` present.",
         "- **WARN**: no FAIL, but `n_heads` differs, or parameter count Δ vs reference > "
-        f"{PARAM_DELTA_WARN_FRAC * 100:.0f}%, or missing `training_meta.json`.",
+        f"{PARAM_DELTA_WARN_FRAC * 100:.0f}%, or missing `training_meta.json`, "
+        "or **`training_meta.json` was repaired** (`metadata_repaired=true`; "
+        "`num_parameters` only is trustworthy).",
         "- **FAIL**: missing `resolved_config.json` or `test_eval/metrics_test.json`, "
         "or mismatch on splits/tokenizers/backbone dims/training budget/seed/eval_split/"
         "`max_gen_len`, or `metrics_test` decoding batch/max_new_tokens mismatch.",
@@ -452,8 +462,8 @@ def main() -> None:
         "## Summary table",
         "",
         "| run | attention_type | status | comparable_to_fast_dot | parameter_count | "
-        "parameter_delta_percent | missing_files | mismatched_fields | notes |",
-        "|-----|----------------|--------|-------------------------|-----------------|---------------------------|---------------|---------------------|-------|",
+        "parameter_delta_percent | training_meta | missing_files | mismatched_fields | notes |",
+        "|-----|----------------|--------|-------------------------|-----------------|---------------------------|---------------|---------------|---------------------|-------|",
     ]
     for r in final_rows:
         mf = "; ".join(r["mismatched_fields"]) if r["mismatched_fields"] else ""
@@ -461,9 +471,10 @@ def main() -> None:
         dp = "" if r["parameter_delta_percent"] is None else f"{r['parameter_delta_percent']:.4f}"
         pc = "" if r["parameter_count"] is None else str(r["parameter_count"])
         notes = (r.get("notes") or "").replace("|", "\\|")
+        tm_note = "repaired" if r.get("training_meta_repaired") else "original"
         lines.append(
             f"| {r['run']} | {r['attention_type']} | {r['status']} | {r['comparable_to_fast_dot']} | "
-            f"{pc} | {dp} | {mis} | {mf} | {notes} |"
+            f"{pc} | {dp} | {tm_note} | {mis} | {mf} | {notes} |"
         )
     lines.append("")
     out_md.write_text("\n".join(lines), encoding="utf-8")

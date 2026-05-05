@@ -55,6 +55,20 @@ def check_run_dir(run_dir: Path) -> list[str]:
     return missing
 
 
+def training_meta_kind(run_dir: Path) -> str:
+    """Return 'missing' | 'repaired' | 'original'."""
+    p = run_dir / "training_meta.json"
+    if not p.is_file():
+        return "missing"
+    try:
+        obj = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return "original"
+    if obj.get("metadata_repaired") is True:
+        return "repaired"
+    return "original"
+
+
 def validate_metrics_semantics(repo: Path, run_dir: Path) -> list[str]:
     """若 metrics 文件存在，校验字段语义未被混淆（validation vs test）。"""
     errs: list[str] = []
@@ -97,6 +111,14 @@ def validate_metrics_semantics(repo: Path, run_dir: Path) -> list[str]:
     return errs
 
 
+def _resolve_manifest_path(repo: Path, s: str) -> Path:
+    """Interpret manifest path strings relative to repo when not absolute."""
+    p = Path(str(s).replace("\\", "/"))
+    if p.is_absolute():
+        return p.resolve()
+    return (repo / p).resolve()
+
+
 def collect_manifest_errors(repo: Path, manifest_paths: list[Path]) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -114,7 +136,7 @@ def collect_manifest_errors(repo: Path, manifest_paths: list[Path]) -> tuple[lis
         # baseline_metrics_path（small_head）：应为文件
         bmp = raw.get("baseline_metrics_path")
         if bmp:
-            bp = Path(bmp)
+            bp = _resolve_manifest_path(repo, str(bmp))
             if not bp.is_file():
                 errors.append(
                     f"{mf.relative_to(repo)}: baseline_metrics_path 不是可读文件: {bmp}"
@@ -133,7 +155,7 @@ def collect_manifest_errors(repo: Path, manifest_paths: list[Path]) -> tuple[lis
                         f"{mf.relative_to(repo)}: runs.{key} 口径错误（应为仓库 runs/…）：{val}"
                     )
                     continue
-                rd = Path(val)
+                rd = _resolve_manifest_path(repo, val)
                 if not rd.is_dir():
                     errors.append(
                         f"{mf.relative_to(repo)}: runs.{key} -> 目录不存在: {val}"
@@ -189,6 +211,7 @@ def main() -> None:
         if not runs_root.is_dir():
             exit_errors.append(f"缺少 runs 目录: {runs_root}")
         else:
+            meta_warns: list[str] = []
             for child in sorted(runs_root.iterdir()):
                 if not child.is_dir():
                     continue
@@ -203,6 +226,15 @@ def main() -> None:
                         + ", ".join(_format_missing(m) for m in miss)
                     )
                 exit_errors.extend(sem)
+                kind = training_meta_kind(child)
+                if kind == "repaired":
+                    rel = child.relative_to(repo)
+                    meta_warns.append(
+                        f"{rel}: training_meta.json present but **repaired** "
+                        "(metadata_repaired=true; wall_time / GPU mem not from original training)"
+                    )
+            for w in meta_warns:
+                print(f"[WARN] {w}", file=sys.stderr)
 
     if exit_errors:
         print("检查失败：", file=sys.stderr)
@@ -210,7 +242,12 @@ def main() -> None:
             print(f"  - {e}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("检查通过：runs/* 必备文件齐全；manifest runs 路径存在。", file=sys.stderr)
+    print(
+        "检查通过：runs/* 必备文件齐全；manifest runs 路径存在。"
+        "（若上方有 [WARN] training_meta repaired，表示该 run 的 training_meta 为事后修补，"
+        "非训练脚本原始记录。）",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":
