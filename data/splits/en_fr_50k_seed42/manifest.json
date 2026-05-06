@@ -13,10 +13,12 @@
     "test": 2500
   },
   "sha256": {
-    "train.tsv": "a1e1e2954bf03d271d82b03543b1ba7aa15957ad71efe36d37f4ea6193d99514",
-    "val.tsv": "c93c11ecf37047ae91c28499db7503fdd661b97b08c821ab2d935e5300d686b8",
-    "test.tsv": "37cefdd4f23971895d78c90c53bbe2d532ed1808b4de83c98fafb43a472655be"
+    "train.tsv": "16d25ad3d6e61bf3419be60d181c7ba605eb003f82dfa72010807e7b84d6f5d1",
+    "val.tsv": "5d0bb2929626ebd58e5cd937d31ca8f0aefe3b1cb9980e36926364f2ae226996",
+    "test.tsv": "440077a0359839a623104346abaa6a2d3a9c5467ac655ee456695e714c387667"
   },
+  "regenerated_from_actual_files": true,
+  "regenerated_at": "2026-05-06T15:26:16+00:00",
   "malformed_lines_discarded": 9,
   "duplicate_pairs_removed": 1416853,
   "creation_timestamp_utc": "2026-04-29T00:52:42.547738+00:00"

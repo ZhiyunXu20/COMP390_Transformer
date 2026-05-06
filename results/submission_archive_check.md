@@ -1,8 +1,8 @@
 # Submission archive check
 
 - **repository**: `/root/autodl-tmp`
-- **--strict**: `False`
-- **overall**: **WARN**
+- **--strict**: `True`
+- **overall**: **FAIL**
 
 ## Python package / script directories
 
@@ -12,9 +12,9 @@
 - [PASS] `small_swap/`: 9 Python files
 - [PASS] `base_1/`: 7 Python files
 - [PASS] `base_improve/`: 8 Python files
-- [PASS] `scripts/`: 23 Python files
-- [PASS] `experiments/`: 6 Python files
-- [PASS] `tests/`: 7 Python files
+- [PASS] `scripts/`: 24 Python files
+- [PASS] `experiments/`: 8 Python files
+- [PASS] `tests/`: 8 Python files
 - [PASS] `translate_cli/`: 1 Python files
 
 ## data/splits and tokenizers
@@ -24,8 +24,14 @@
 - [PASS] `data/splits/en_fr_50k_seed42/val.tsv`
 - [PASS] `data/splits/en_fr_50k_seed42/test.tsv`
 - [PASS] `data/splits/en_fr_50k_seed42/split_metadata.json`
+- [PASS] `data/splits/en_fr_50k_seed42/manifest.json`
 - [PASS] `data/tokenizer_metadata.json`
 - [PASS] `data/tokenizer*.json` count=5
+
+## Data integrity (split TSV SHA-256)
+
+- **status**: **PASS**
+- [PASS] `scripts/check_data_integrity.py` OK → `results/data_integrity_report.md`
 
 ## 10 reported runs — test_eval + core JSON
 
@@ -150,10 +156,10 @@
 
 ## prepare_code_archive.validate (test_eval pairs + CSV)
 
-- **status**: **PASS**
-- [PASS] `prepare_code_archive.validate` OK
+- **status**: **FAIL**
+- [FAIL] `prepare_code_archive.validate` reported missing artifacts
 
 ## estimated archive size (non-ignored files)
 
 - **status**: **PASS**
-- [PASS] ~7344.1 MiB for files not matched by `git check-ignore` (local `du -sh runs/` may be much larger if checkpoints exist but are ignored)
+- [PASS] ~7348.8 MiB for files not matched by `git check-ignore` (local `du -sh runs/` may be much larger if checkpoints exist but are ignored)

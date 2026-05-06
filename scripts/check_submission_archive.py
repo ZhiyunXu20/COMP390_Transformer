@@ -134,7 +134,7 @@ def run_checks(
 
     c_data = Category("data/splits and tokenizers")
     split_dir = repo / "data" / "splits" / "en_fr_50k_seed42"
-    for name in ("train.tsv", "val.tsv", "test.tsv", "split_metadata.json"):
+    for name in ("train.tsv", "val.tsv", "test.tsv", "split_metadata.json", "manifest.json"):
         fp = split_dir / name
         if fp.is_file():
             c_data.add("PASS", f"`{fp.relative_to(repo)}`")
@@ -151,6 +151,29 @@ def run_checks(
     else:
         c_data.add("FAIL", "no `data/tokenizer*.json`")
     cats.append(c_data)
+
+    c_di = Category("Data integrity (split TSV SHA-256)")
+    script = repo / "scripts" / "check_data_integrity.py"
+    if not script.is_file():
+        c_di.add("FAIL", "missing `scripts/check_data_integrity.py`")
+    else:
+        cp = subprocess.run(
+            [sys.executable, str(script), "--repo-root", str(repo)],
+            cwd=str(repo),
+            capture_output=True,
+            text=True,
+        )
+        out = ((cp.stderr or "").strip() + "\n" + (cp.stdout or "").strip()).strip()
+        if cp.returncode == 0:
+            c_di.add("PASS", "`scripts/check_data_integrity.py` OK → `results/data_integrity_report.md`")
+        else:
+            c_di.add(
+                "FAIL",
+                "`scripts/check_data_integrity.py` FAILED (see `results/data_integrity_report.md`)",
+            )
+            if out:
+                c_di.add("FAIL", out[:1200])
+    cats.append(c_di)
 
     c_runs = Category("10 reported runs — test_eval + core JSON")
     for run in REPORTED_RUNS:
