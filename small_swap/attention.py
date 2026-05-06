@@ -12,6 +12,7 @@ Longformer / BigBird / ETC 等论文中的 **块稀疏内核或未物化的稀�
 from __future__ import annotations
 
 import math
+import warnings
 from typing import Literal, Optional, Tuple
 
 import torch
@@ -65,11 +66,33 @@ def _sparsemax(logits: torch.Tensor, dim: int = -1) -> torch.Tensor:
     return _sparsemax_naive(logits, dim=dim)
 
 
-def _entmax15(logits: torch.Tensor, dim: int = -1) -> torch.Tensor:
-    """α=1.5 的 entmax（稀疏归一化，介于 softmax 与 sparsemax 之间）。"""
+def _entmax15(
+    logits: torch.Tensor,
+    dim: int = -1,
+    *,
+    allow_fallback: bool = False,
+) -> torch.Tensor:
+    """α=1.5 entmax. Raises if entmax package missing unless allow_fallback=True.
+
+    Fallback uses sparsemax_naive — NOT entmax15 (testing / explicit opt-in only).
+    """
     if _HAS_ENTMAX and _entmax_bisect is not None:
         return _entmax_bisect(logits, alpha=1.5, dim=dim)
-    return _sparsemax_naive(logits, dim=dim)
+    if allow_fallback:
+        warnings.warn(
+            "entmax package unavailable; falling back to sparsemax_naive. "
+            "Results will NOT be entmax15. Set attention_type='sparsemax' "
+            "if this is intended, or install: pip install entmax>=0.1",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return _sparsemax_naive(logits, dim=dim)
+    raise RuntimeError(
+        "attention_type='entmax15' requires the entmax package. "
+        "Install: pip install entmax>=0.1 . "
+        "If you really want sparsemax-like fallback for testing, "
+        "use _entmax15(..., allow_fallback=True) explicitly."
+    )
 
 
 AttnLayerKind = Literal["encoder_self", "decoder_self", "cross"]

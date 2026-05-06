@@ -32,7 +32,7 @@ except ImportError:
     wandb = None
 
 from mt_eval import evaluate_generation_corpus, flatten_extra_for_log
-from small_shared.metrics_json import bleu_disambiguation_fields
+from small_shared.metrics_json import bleu_disambiguation_fields, effective_attention_backend_field
 from train_runtime import (
     PATH_FIELDS_DEFAULT,
     apply_shared_cli_to_config,
@@ -143,6 +143,7 @@ def save_metrics_json(
         "config": jsonable(cfg.__dict__),
     }
     payload.update(bleu_disambiguation_fields(cfg, bleu_eval_meta))
+    payload.update(effective_attention_backend_field(cfg))
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 

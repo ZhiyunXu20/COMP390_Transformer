@@ -15,7 +15,7 @@ for path in (ROOT, _SCRIPTS):
     if s not in sys.path:
         sys.path.insert(0, s)
 
-from ablation_lib import evaluate_checkpoint_on_test, merge_ablation_metrics_json
+from ablation_lib import evaluate_checkpoint_on_sampled_test_monitoring, merge_ablation_metrics_json
 
 
 def main() -> None:
@@ -115,7 +115,7 @@ def main() -> None:
                 raise SystemExit(pr.returncode)
 
             try:
-                test_eval = evaluate_checkpoint_on_test(
+                test_eval = evaluate_checkpoint_on_sampled_test_monitoring(
                     repo,
                     args.config,
                     run_dir,

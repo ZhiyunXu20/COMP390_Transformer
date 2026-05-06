@@ -1,4 +1,7 @@
-"""消融实验共用：加载 best checkpoint 并在 test 划分上终评。"""
+"""消融实验共用：加载 checkpoint 并在 **采样/过滤** 的 test 划分上做监控式 BLEU/chrF（非全文 held-out 终评）。
+
+最终论文级指标以仓库根目录 **`evaluate_test.py`** → **`runs/<run>/test_eval/metrics_test.json`** 为准。
+"""
 
 from __future__ import annotations
 
@@ -45,7 +48,7 @@ def set_seed(seed: int) -> None:
 
 
 @torch.no_grad()
-def evaluate_checkpoint_on_test(
+def evaluate_checkpoint_on_sampled_test_monitoring(
     repo_root: Path,
     pkg_name: str,
     run_dir: Path,
@@ -53,7 +56,18 @@ def evaluate_checkpoint_on_test(
     ckpt_name: str = "best.pt",
     bleu_sample_size: int = 256,
 ) -> dict[str, Any]:
-    """加载 ``run_dir/best.pt``（或 ``last.pt``），在 **test** 划分上做 greedy + BLEU/chrF/COMET。"""
+    """Sampled/filtered monitoring helper for ablation drivers.
+
+    NOT a full held-out test evaluation. This function uses
+    cfg.bleu_sample_size (default 256) and cfg.bleu_skip_identical_parallel
+    (default True), so its BLEU/chrF/COMET numbers are NOT comparable to
+    the authoritative held-out test numbers in
+    runs/<run>/test_eval/metrics_test.json (which are produced by
+    evaluate_test.py with full 2500 examples and no skip filtering).
+
+    For final test evaluation, ALWAYS use evaluate_test.py.
+    For training-time / ablation-driver monitoring only, use this helper.
+    """
     rr = repo_root.resolve()
     if str(rr) not in sys.path:
         sys.path.insert(0, str(rr))
@@ -201,3 +215,7 @@ def merge_ablation_metrics_json(
         "resolved_paths_note": "paths in config_snapshot are post-train resolution; see resolved_config.json",
     }
     mp.write_text(json.dumps(merged, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+# Backward-compat alias (deprecated; will be removed in a future release).
+evaluate_checkpoint_on_test = evaluate_checkpoint_on_sampled_test_monitoring

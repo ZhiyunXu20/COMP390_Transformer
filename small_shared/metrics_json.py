@@ -12,6 +12,21 @@ FINAL_BLEU_CAVEAT = (
 )
 
 
+def effective_attention_backend_field(cfg: Any) -> dict[str, Any]:
+    """Record entmax normalization backend when attention_type is entmax15 (forward-only provenance)."""
+    at = getattr(cfg, "attention_type", None)
+    if at != "entmax15":
+        return {}
+    try:
+        from entmax import entmax_bisect as _entmax_bisect_check  # noqa: F401
+
+        if _entmax_bisect_check is not None:
+            return {"effective_attention_backend": "entmax15-bisect"}
+    except ImportError:
+        pass
+    return {"effective_attention_backend": "entmax15-fallback-sparsemax-naive"}
+
+
 def bleu_disambiguation_fields(
     cfg: Any,
     bleu_eval_meta: Mapping[str, Any] | None = None,

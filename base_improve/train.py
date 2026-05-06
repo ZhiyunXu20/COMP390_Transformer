@@ -31,7 +31,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 from mt_eval import evaluate_generation_corpus, flatten_extra_for_log
-from small_shared.metrics_json import bleu_disambiguation_fields
+from small_shared.metrics_json import bleu_disambiguation_fields, effective_attention_backend_field
 from train_runtime import configure_determinism, make_worker_init_fn
 
 
@@ -98,6 +98,7 @@ def save_metrics_json(
         "config": jsonable(cfg.__dict__),
     }
     payload.update(bleu_disambiguation_fields(cfg, bleu_eval_meta))
+    payload.update(effective_attention_backend_field(cfg))
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 

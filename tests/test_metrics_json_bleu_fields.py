@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from small_shared.metrics_json import FINAL_BLEU_CAVEAT, bleu_disambiguation_fields
+from small_shared.metrics_json import FINAL_BLEU_CAVEAT, bleu_disambiguation_fields, effective_attention_backend_field
 
 
 @dataclass
@@ -39,3 +39,20 @@ def test_bleu_disambiguation_default_eval_split_without_attr() -> None:
     assert d["final_bleu_max_samples"] == 128
     assert d["final_bleu_skip_identical_parallel"] is False
     assert d["final_bleu_num_examples"] is None
+
+
+def test_effective_attention_backend_entmax15_only() -> None:
+    @dataclass
+    class EntCfg:
+        attention_type: str = "entmax15"
+
+    d = effective_attention_backend_field(EntCfg())
+    assert d["effective_attention_backend"] in ("entmax15-bisect", "entmax15-fallback-sparsemax-naive")
+
+
+def test_effective_attention_backend_omitted_when_not_entmax() -> None:
+    @dataclass
+    class DotCfg:
+        attention_type: str = "dot_product"
+
+    assert effective_attention_backend_field(DotCfg()) == {}

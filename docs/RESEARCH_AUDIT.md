@@ -25,7 +25,7 @@
 - **训练脚本**（以 `small_try/train.py` 为代表）：AdamW + warmup（`get_warmup_lambda`）、Teacher forcing CE（`build_logits_shifted_loss`）、周期性在 `eval_split` 上做 greedy + `mt_eval.evaluate_generation_corpus`；训练结束再做一次 `force_heavy=True` 的生成评估并写入 `metrics.json`（`save_metrics_json`）。
 - **评估**：`mt_eval.py` 提供 BLEU（SacreBLEU）、chrF/chrF++、`score_bertscore_f1`、`score_comet`；`compute_extra_metrics` 内对 **BERTScore/COMET** 有 **heavy 步频门控**（见 §5）。
 - **数据**：平行句对 TSV + SentencePiece tokenizer JSON（`dataset.py` `load_tokenizers`）；划分可由 `scripts/create_splits.py` 生成 manifest（见 §3）。
-- **消融/终评**：`scripts/ablation_lib.py` `evaluate_checkpoint_on_test` 在 **test** DataLoader 上跑评估并可写 `predictions.jsonl`。
+- **消融/监控**：`scripts/ablation_lib.py` **`evaluate_checkpoint_on_sampled_test_monitoring`**（旧名弃用别名 **`evaluate_checkpoint_on_test`**）在 **test** DataLoader 上跑 **子样本+过滤** 评估并可写 `predictions.jsonl`；**非** `evaluate_test.py` 全文 held-out。
 
 未在源码层面验证的内容（故**不写入“已实现”**）：外部集群调度、W&B 云端可见性、任意具体 checkpoint 数值结论。
 
@@ -72,7 +72,7 @@
   若 CLI `--eval-split test`，才会在 test 上算这些“final”数字（见 `train_runtime.apply_shared_cli_to_config` 对 `eval_split` 的覆盖）。
 - **Naming**：`metrics.json` **`final_bleu`** — historical naming; semantically a **sampled validation (eval_split) BLEU** with training-time skip filters. Always cross-reference **`test_eval/metrics_test.json`** for held-out test results. New training runs also write `final_bleu_*` / `final_extra_metrics_*` disambiguation fields (see `small_shared/metrics_json.py`).
 
-**与之对照**：`scripts/ablation_lib.evaluate_checkpoint_on_test` **固定** `TabParallelDataset(..., "test")`（`91:91`），其产出写入合并 metrics 的 `final_eval_on_test_split`（`merge_ablation_metrics_json`）。
+**与之对照**：`scripts/ablation_lib.evaluate_checkpoint_on_sampled_test_monitoring` **固定** `TabParallelDataset(..., "test")` 但 **`max_samples=bleu_sample_size`** 且 **skip 过滤**，其产出写入合并 metrics 的 `final_eval_on_test_split`（`merge_ablation_metrics_json`）；与 **`evaluate_test.py`** 全文 test 不同。
 
 ---
 
@@ -93,11 +93,17 @@
 - **训练中周期性验证**：`optimizer_step` 例如 120、240… 当 `120 % eval_heavy_metrics_every_optimizer_steps != 0`（默认 `eval_heavy_metrics_every_optimizer_steps=2000`，`small_try/config.py` `95`）时，`run_heavy` 为 **False** → **BERTScore/COMET 常为 `not_run`/`None`**，仅 BLEU/chrF 系列稳定出现。
 - **`--eval-light`**：`small_try/train.py` 关闭 BERT/COMET（`164:166`）。
 
-**predictions.jsonl**：`evaluate_generation_corpus` 在 `force_heavy=True` 时总会写出预测文件；若未传 `predictions_jsonl_path`，路径为 **`Path("predictions.jsonl")`（当前工作目录）**（`509:512:mt_eval.py`）。`ablation_lib` 显式传入 `run_dir / "predictions.jsonl"`（`133:133`）。
+**predictions.jsonl**：`evaluate_generation_corpus` 在 `force_heavy=True` 时总会写出预测文件；若未传 `predictions_jsonl_path`，路径为 **`Path("predictions.jsonl")`（当前工作目录）**（`509:512:mt_eval.py`）。`ablation_lib.evaluate_checkpoint_on_sampled_test_monitoring` 显式传入 `run_dir / "predictions.jsonl"`（监控子样本；非 `evaluate_test.py` 全文 test）。
 
 ---
 
-## 6. `small_head` 单头实验的解释风险
+## 5b. A28 — entmax15 后端语义与消融监控辅助函数命名
+
+- **entmax15 backend semantics (A28)**：`small_try` / `small_head` / `small_swap` 中 `_entmax15` 在 **未安装** `entmax` 包时将 **`RuntimeError`**，不再静默回退到 `sparsemax_naive`。仅当显式传入 **`allow_fallback=True`** 时才警告并走 sparsemax-like 路径（**不是** entmax15）。归档的 **`var_entmax15`** 等 run 在训练机上安装了 entmax（长 wall 时间符合真实 bisection）；本修复面向未来复现者，避免无包时把输出误标为 entmax15。**新训练** 的 `metrics.json` 在 `attention_type=="entmax15"` 时额外写入 **`effective_attention_backend`**：`entmax15-bisect` 或 `entmax15-fallback-sparsemax-naive`（依环境探测）。
+
+- **Sampled-vs-full evaluation helper rename (A28)**：`scripts.ablation_lib` 中原 **`evaluate_checkpoint_on_test`** 实际使用 **`cfg.bleu_sample_size`**（默认 256）与 **`bleu_skip_identical_parallel`**，属 **采样+过滤监控**，与全文 held-out 终评无关。现更名为 **`evaluate_checkpoint_on_sampled_test_monitoring`**；保留 **`evaluate_checkpoint_on_test`** 为弃用别名。**V8 的 36 个归档 run 的论文级 BLEU/chrF/COMET 均来自 `evaluate_test.py`**（2500 条、无 skip），见各 **`runs/<run>/test_eval/metrics_test.json`**。
+
+---
 
 - **参数量公平性 — RESOLVED**：`head_1h_dot` 采用 **`n_heads=1` 且 `d_k = d_model`（256）**（单头占据全部分头维度），**总参数量与多头 dot baseline 一致（30,442,800）**。审计依据：**`results/variant_fairness_audit.md`**（`head_1h_dot` 相对 `fast_dot` 的 `parameter_delta_percent = 0`）。旧版文档中「hidden size / `d_k` 与多头不对齐 ⇒ 参数量不可靠」的警告在此设定下 **已不成立**。
 - **解释性边界（仍成立）**：比较的是 **1 个宽头** vs **4 个窄头** 的分解方式，而非「仅改变 head 数目、其余张量形状不变」的单纯计数消融；叙事中仍需明确 head 拓扑差异。
