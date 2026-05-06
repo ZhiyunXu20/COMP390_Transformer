@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import sys
 from pathlib import Path
@@ -178,12 +179,14 @@ def main() -> None:
     pkg_root = _REPO_ROOT / args.pkg
     if not pkg_root.is_dir():
         raise SystemExit(f"找不到代码目录: {pkg_root}")
-    pkg_insert = str(pkg_root)
-    if pkg_insert not in sys.path:
-        sys.path.insert(0, pkg_insert)
 
-    from dataset import TabParallelDataset, collate_batch, load_tokenizers, tokenizer_special_ids
-    from model import Seq2SeqTransformer
+    ds_mod = importlib.import_module(f"{args.pkg}.dataset")
+    model_mod = importlib.import_module(f"{args.pkg}.model")
+    TabParallelDataset = ds_mod.TabParallelDataset
+    collate_batch = ds_mod.collate_batch
+    load_tokenizers = ds_mod.load_tokenizers
+    tokenizer_special_ids = ds_mod.tokenizer_special_ids
+    Seq2SeqTransformer = model_mod.Seq2SeqTransformer
 
     anomaly_counts = count_test_file_anomalies(test_file)
 

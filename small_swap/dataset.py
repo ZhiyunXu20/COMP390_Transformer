@@ -9,8 +9,8 @@ import torch
 from torch.utils.data import Dataset
 from tokenizers import Tokenizer
 
-from config import Config
-from tokens import BOS_ID, EOS_ID, PAD_ID
+from small_swap.config import Config
+from small_swap.tokens import BOS_ID, EOS_ID, PAD_ID
 
 
 def load_tokenizers(cfg: Config) -> tuple[Tokenizer, Tokenizer]:

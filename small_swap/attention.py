@@ -18,7 +18,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from config import AttentionType, Config
+from small_shared.attention_ops import guard_norm_all_masked_rows, safe_masked_softmax
+from small_swap.config import AttentionType, Config
 
 # sparsemax / entmax：优先使用 pip 包 entmax（含 Sparsemax、entmax_bisect）。
 try:
@@ -169,7 +170,7 @@ class ScaledDotProductAttention(nn.Module):
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
         if attn_mask is not None:
             scores = scores + attn_mask
-        attn = F.softmax(scores, dim=-1)
+        attn = safe_masked_softmax(scores, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         return out, attn
@@ -199,7 +200,7 @@ class AdditiveAttention(nn.Module):
         scores = self.v(hidden).squeeze(-1) / math.sqrt(self.d_k)
         if attn_mask is not None:
             scores = scores + attn_mask
-        attn = F.softmax(scores, dim=-1)
+        attn = safe_masked_softmax(scores, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         return out, attn
@@ -230,7 +231,7 @@ class BilinearAttention(nn.Module):
         scores = torch.einsum("bhid,hde,bhje->bhij", q, self.W, k) / math.sqrt(self.d_k)
         if attn_mask is not None:
             scores = scores + attn_mask
-        attn = F.softmax(scores, dim=-1)
+        attn = safe_masked_softmax(scores, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         return out, attn
@@ -282,7 +283,7 @@ class GatedDotAdditiveAttention(nn.Module):
         scores = gate * dot_score + (1.0 - gate) * add_score
         if attn_mask is not None:
             scores = scores + attn_mask
-        attn = F.softmax(scores, dim=-1)
+        attn = safe_masked_softmax(scores, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         return out, attn
@@ -323,7 +324,7 @@ class LocalWindowDotAttention(nn.Module):
         scores = scores + struct.unsqueeze(0).unsqueeze(0)
         if attn_mask is not None:
             scores = scores + attn_mask
-        attn = F.softmax(scores, dim=-1)
+        attn = safe_masked_softmax(scores, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         return out, attn
@@ -372,7 +373,7 @@ class GlobalLocalDotAttention(nn.Module):
         scores = scores + struct.unsqueeze(0).unsqueeze(0)
         if attn_mask is not None:
             scores = scores + attn_mask
-        attn = F.softmax(scores, dim=-1)
+        attn = safe_masked_softmax(scores, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         return out, attn
@@ -397,6 +398,7 @@ class SparsemaxDotAttention(nn.Module):
         if attn_mask is not None:
             scores = scores + attn_mask
         attn = _sparsemax(scores, dim=-1)
+        attn = guard_norm_all_masked_rows(scores, attn, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         return out, attn
@@ -421,6 +423,7 @@ class Entmax15DotAttention(nn.Module):
         if attn_mask is not None:
             scores = scores + attn_mask
         attn = _entmax15(scores, dim=-1)
+        attn = guard_norm_all_masked_rows(scores, attn, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         return out, attn

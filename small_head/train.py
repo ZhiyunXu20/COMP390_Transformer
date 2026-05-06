@@ -3,12 +3,17 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 import argparse
 import json
 import random
-import sys
 import time
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import torch
@@ -17,19 +22,16 @@ from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from config import Config
-from attention_plots import figure_cross_attention_heads, figure_cross_attention_mean
-from dataset import TabParallelDataset, collate_batch, load_tokenizers, tokenizer_special_ids
-from model import Seq2SeqTransformer, build_logits_shifted_loss
+from small_head.attention_plots import figure_cross_attention_heads, figure_cross_attention_mean
+from small_head.config import Config
+from small_head.dataset import TabParallelDataset, collate_batch, load_tokenizers, tokenizer_special_ids
+from small_head.model import Seq2SeqTransformer, build_logits_shifted_loss
 
 try:
     import wandb
 except ImportError:
     wandb = None
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
 from mt_eval import evaluate_generation_corpus, flatten_extra_for_log
 from small_shared.metrics_json import bleu_disambiguation_fields
 from train_runtime import (

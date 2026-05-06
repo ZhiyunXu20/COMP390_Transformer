@@ -9,12 +9,11 @@ import pytest
 import torch
 
 ROOT = Path(__file__).resolve().parents[1]
-_SMALL_TRY = ROOT / "small_try"
-if str(_SMALL_TRY) not in sys.path:
-    sys.path.insert(0, str(_SMALL_TRY))
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-from attention import build_core_attention, core_attention_param_count  # noqa: E402
-from config import Config  # noqa: E402
+from small_try.attention import build_core_attention, core_attention_param_count  # noqa: E402
+from small_try.config import Config  # noqa: E402
 
 
 # 与 config.AttentionType 同步

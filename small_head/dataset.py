@@ -1,4 +1,4 @@
-"""与 small_try 相同加载逻辑；数据文件由 Config 的 train/val/test 路径或 legacy 单文件指定。"""
+"""平行句对：默认读 train/val/test.tsv；可选单文件 legacy 模式（与旧 corpus_50k.tsv 兼容）。"""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import torch
 from torch.utils.data import Dataset
 from tokenizers import Tokenizer
 
-from config import Config
-from tokens import BOS_ID, EOS_ID, PAD_ID
+from small_head.config import Config
+from small_head.tokens import BOS_ID, EOS_ID, PAD_ID
 
 
 def load_tokenizers(cfg: Config) -> tuple[Tokenizer, Tokenizer]:

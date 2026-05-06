@@ -8,8 +8,8 @@ from typing import Any, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 
-from attention import MultiHeadAttention, PositionwiseFFN, PositionalEncoding
-from config import Config
+from small_head.attention import MultiHeadAttention, PositionwiseFFN, PositionalEncoding
+from small_head.config import Config
 
 
 def _causal_square(L: int, device: torch.device) -> torch.Tensor:
@@ -30,6 +30,17 @@ def _key_pad_mask(
     return f.unsqueeze(1).unsqueeze(2)
 
 
+def _encoder_self_attn_mask(src: torch.Tensor, pad_idx: int) -> torch.Tensor:
+    """Key padding + query-padding rows so structural attention never softmaxes an all-masked row."""
+    b, ls = src.shape
+    pad = _key_pad_mask(src, pad_idx)
+    pad_exp = pad.expand(b, 1, ls, ls)
+    q_pad = src == pad_idx
+    query_bias = torch.zeros(b, 1, ls, ls, device=src.device, dtype=torch.float32)
+    query_bias.masked_fill_(q_pad.unsqueeze(1).unsqueeze(-1).expand(b, 1, ls, ls), float("-inf"))
+    return pad_exp + query_bias
+
+
 class EncoderLayer(nn.Module):
     def __init__(self, cfg: Config):
         super().__init__()
@@ -42,11 +53,11 @@ class EncoderLayer(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        src_key_padding: torch.Tensor,
+        src_attn_mask: torch.Tensor,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        # src_key_padding: (B,1,1,Ls) float
+        # src_attn_mask: (B,1,Ls,Ls) float (key columns + query rows masked)
         q = self.norm1(x)
-        attn_out, attn_w = self.self_attn(q, q, q, attn_mask=src_key_padding)
+        attn_out, attn_w = self.self_attn(q, q, q, attn_mask=src_attn_mask)
         x = x + self.dropout(attn_out)
         x = x + self.dropout(self.ff(self.norm2(x)))
         return x, attn_w
@@ -107,9 +118,10 @@ class Seq2SeqTransformer(nn.Module):
     def encode(self, src: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """src: (B, Ls)"""
         pad = _key_pad_mask(src, self.pad_idx)
+        enc_mask = _encoder_self_attn_mask(src, self.pad_idx)
         x = self.src_pe(self.src_embed(src))
         for layer in self.encoder_layers:
-            x, _ = layer(x, pad)
+            x, _ = layer(x, enc_mask)
         return x, pad
 
     def decode(
@@ -124,7 +136,10 @@ class Seq2SeqTransformer(nn.Module):
         causal = _causal_square(lt, tgt.device).view(1, 1, lt, lt).expand(b, 1, lt, lt)
         tgt_pad = _key_pad_mask(tgt, self.pad_idx)
         tgt_pad_exp = tgt_pad.expand(b, 1, lt, lt)
-        self_attn_mask = causal + tgt_pad_exp
+        q_pad = tgt == self.pad_idx
+        query_row_bias = torch.zeros(b, 1, lt, lt, device=tgt.device, dtype=torch.float32)
+        query_row_bias.masked_fill_(q_pad.unsqueeze(1).unsqueeze(-1).expand(b, 1, lt, lt), float("-inf"))
+        self_attn_mask = causal + tgt_pad_exp + query_row_bias
 
         x = self.tgt_pe(self.tgt_embed(tgt))
         dec_cross: list[torch.Tensor] = []

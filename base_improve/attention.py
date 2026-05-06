@@ -7,9 +7,9 @@ from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from config import AttentionType, Config
+from small_shared.attention_ops import safe_masked_softmax
 
 
 class ScaledDotProductAttention(nn.Module):
@@ -29,7 +29,7 @@ class ScaledDotProductAttention(nn.Module):
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
         if attn_mask is not None:
             scores = scores + attn_mask
-        attn = F.softmax(scores, dim=-1)
+        attn = safe_masked_softmax(scores, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         return out, attn
@@ -60,7 +60,7 @@ class AdditiveAttention(nn.Module):
         scores = self.v(hidden).squeeze(-1) / math.sqrt(self.d_k)
         if attn_mask is not None:
             scores = scores + attn_mask
-        attn = F.softmax(scores, dim=-1)
+        attn = safe_masked_softmax(scores, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
         return out, attn

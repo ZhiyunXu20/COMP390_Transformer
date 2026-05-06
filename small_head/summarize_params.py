@@ -7,8 +7,12 @@ import json
 import sys
 from pathlib import Path
 
-from config import Config
-from model import Seq2SeqTransformer
+_REPO = Path(__file__).resolve().parent.parent
+if str(_REPO) not in sys.path:
+    sys.path.insert(0, str(_REPO))
+
+from small_head.config import Config
+from small_head.model import Seq2SeqTransformer
 
 
 def total_params(model: Seq2SeqTransformer) -> int:

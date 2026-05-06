@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import random
 import sys
@@ -13,17 +14,21 @@ from torch.utils.data import DataLoader
 
 
 def import_training_stack(repo_root: Path, pkg_name: str) -> tuple[Any, Callable[..., Any], Any, Any, Any, Any]:
-    pkg_dir = repo_root / pkg_name
-    if not pkg_dir.is_dir():
-        raise FileNotFoundError(f"未知配置包: {pkg_dir}")
-    s = str(pkg_dir)
-    if s not in sys.path:
-        sys.path.insert(0, s)
-    from config import Config
-    from dataset import TabParallelDataset, collate_batch, load_tokenizers, tokenizer_special_ids
-    from model import Seq2SeqTransformer
-
-    return Config, TabParallelDataset, collate_batch, load_tokenizers, tokenizer_special_ids, Seq2SeqTransformer
+    rr = repo_root.resolve()
+    rs = str(rr)
+    if rs not in sys.path:
+        sys.path.insert(0, rs)
+    cfg_mod = importlib.import_module(f"{pkg_name}.config")
+    ds_mod = importlib.import_module(f"{pkg_name}.dataset")
+    model_mod = importlib.import_module(f"{pkg_name}.model")
+    return (
+        cfg_mod.Config,
+        ds_mod.TabParallelDataset,
+        ds_mod.collate_batch,
+        ds_mod.load_tokenizers,
+        ds_mod.tokenizer_special_ids,
+        model_mod.Seq2SeqTransformer,
+    )
 
 
 def cfg_from_checkpoint_dict(cfg_dict: dict[str, Any], ConfigCls: Any) -> Any:
