@@ -29,20 +29,28 @@
 
 ## Data split overlap (source/target level)
 
-DCEP 语料划分（**`data/splits/en_fr_50k_seed42/`**）在 **(source, target) 句对** 层面去重。对实际 **`.tsv`** 文件度量（`csv.reader` 行；含嵌入换行的长句）：
+仓库以**逐物理行制表符分隔**（raw line-delimited TSV）的方式存储与加载 split：`small_try/dataset.py`、`small_head/dataset.py`、`small_swap/dataset.py` 均逐行 `line.rstrip("\n").split("\t")` 读取，`scripts/make_splits.py` 也按逐行 TSV 写入。注意：默认 quote-aware `csv.reader` 不适用于本仓库 split，因为 DCEP 自然语言文本中含未按 CSV 规范转义的双引号（如 `"Euromat"`），会错误地跨物理行合并记录。审计应使用 `line.rstrip("\n").split("\t")` 或 `csv.reader(delimiter="\t", quoting=csv.QUOTE_NONE)`。
 
-- **Pair-level (source, target)** overlap across train / val / test：**所有 split 两两之间均为 0**（句对级去重正确）。
-- **Source-string overlap**：train–val = **10**，train–test = **8**，val–test = **1**。
-- **Target-string overlap**：train–val = **8**，train–test = **9**，val–test = **1**。
-- **1-to-many alignment noise**：**109** 个源字符串对应多个目标；**106** 个目标字符串对应多个源。
-- **空源/空目标行**：**0**；**src == tgt 行**：**0**。
-- **行数**：**csv 解析** train / val / test = **44342 / 2491 / 2413**；**原始 `wc -l`（行终止符计数）** = **45000 / 2500 / 2500**（与 **`manifest.json`** 一致）。差异来自 **658** 条含 **嵌入 `\n`** 的长句：`csv.reader` 将其视为单行，物理行数更多。两种计数均有效，论文中应说明口径。
+按真实 loader 口径，split 行数为：**train = 45000, val = 2500, test = 2500**。无空 src/tgt 行；无 src==tgt 行。
 
-**含义**：train–test 上 **8** 条源串、**9** 条目标串与训练 split 表面重合；**val–test** 另有 **1** 条源串与 **1** 条目标串跨 val/test 重合。模型可能轻微复现在训练中见过的 **源/目标表面形式**，从而相对「严格 held-out 词面新颖性」**轻微抬高** BLEU；整体占比小，但应在 **Threats to validity** 中承认 **全部三对 split 的串级重叠**（非仅 train–test）。
+Pair-level (source, target) overlap matrix:
 
-- **Forbidden claim**：*"Held-out test BLEU is unaffected by training data."*
+| overlap type | train-val | train-test | val-test |
+|---|---:|---:|---:|
+| exact (src, tgt) pair | 0 | 0 | 0 |
+| source string | 10 | 8 | 1 |
+| target string | 8 | 9 | 1 |
 
-- **Required Threats to Validity wording**（可在 Limitations / Threats 中直接使用英文）：*Although pair-level deduplication ensures **no exact (source, target) pair** is shared across **train, val, or test**, **source/target string overlaps** still exist: **train–val** 10 source / 8 target strings, **train–test** 8 / 9, **val–test** 1 / 1. The corpus also has **109** sources with multiple targets and **106** targets with multiple sources (DCEP alignment noise). **Row counts** are **44,342 / 2,491 / 2,413** under **`csv.reader`** vs **45,000 / 2,500 / 2,500** by raw line count / **`manifest.json`**, due to **embedded newlines in 658 long sentences**. We did not filter cross-split string overlaps; held-out test BLEU may be **slightly inflated** versus a strict lexical-novelty benchmark.*
+Alignment noise (1-to-many):
+
+- source strings with >1 distinct target: **115**
+- target strings with >1 distinct source: **107**
+
+Implication: 8 test source strings (~0.32% of test) appear in train. No exact pair leak across splits, but DCEP's 1-to-many alignment noise (115 source strings with multiple targets, 107 target strings with multiple sources) means a small fraction of test source strings share a string with train. This may slightly inflate held-out test BLEU.
+
+**Forbidden claim**: "Held-out test BLEU is unaffected by training data" or "Splits are perfectly disjoint at the string level."
+
+**Required Threats to Validity wording (verbatim recommended)**: "Although pair-level deduplication ensures no exact (source, target) pair appears in both train and test, 8 source strings (~0.32% of test) appear in both splits, and the corpus contains 115 source-strings with multiple distinct targets and 107 target-strings with multiple distinct sources, reflecting alignment noise inherent to DCEP. We did not filter cross-split source/target overlaps, and held-out test BLEU may be slightly inflated."
 
 ---
 

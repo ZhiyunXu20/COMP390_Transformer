@@ -1,0 +1,39 @@
+{
+  "row_counts": {
+    "train": 45000,
+    "val": 2500,
+    "test": 2500
+  },
+  "bad_rows_skipped": {
+    "train": 0,
+    "val": 0,
+    "test": 0
+  },
+  "empty_src_or_tgt_rows": {
+    "train": 0,
+    "val": 0,
+    "test": 0
+  },
+  "src_eq_tgt_rows": {
+    "train": 0,
+    "val": 0,
+    "test": 0
+  },
+  "exact_pair_overlap": {
+    "train-val": 0,
+    "train-test": 0,
+    "val-test": 0
+  },
+  "source_overlap": {
+    "train-val": 10,
+    "train-test": 8,
+    "val-test": 1
+  },
+  "target_overlap": {
+    "train-val": 8,
+    "train-test": 9,
+    "val-test": 1
+  },
+  "source_to_multiple_targets": 115,
+  "target_to_multiple_sources": 107
+}
