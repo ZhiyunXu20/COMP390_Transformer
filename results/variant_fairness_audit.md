@@ -31,7 +31,7 @@ Reference run: **`fast_dot`** (parameter deltas vs this run when counts availabl
 | var_gated_dot_additive | gated_dot_additive | WARN | True | 30845280 | 1.3221 | original |  |  | parameter_changed |
 | var_sparsemax | sparsemax | PASS | True | 30442800 | 0.0000 | original |  |  |  |
 | var_entmax15 | entmax15 | PASS | True | 30442800 | 0.0000 | original |  |  |  |
-| var_local_window | local_window | PASS | True | 30442800 | 0.0000 | original |  |  | signature overlap risk vs runs: ['var_local_window_fp32', 'var_local_window_lr1e4', 'var_local_window_window16'] |
+| var_local_window | local_window | PASS | True | 30442800 | 0.0000 | original |  |  | signature overlap risk vs runs: ['var_local_window_fp32', 'var_local_window_lr1e4', 'var_local_window_window16', 'var_local_window_a23_retrain'] |
 | var_global_local | global_local | PASS | True | 30442800 | 0.0000 | original |  |  |  |
 | var_bilinear_s1 | bilinear | FAIL | False | 30639408 | 0.6458 | original |  | seed |  |
 | var_bilinear_s2 | bilinear | FAIL | False | 30639408 | 0.6458 | original |  | seed |  |
@@ -42,9 +42,10 @@ Reference run: **`fast_dot`** (parameter deltas vs this run when counts availabl
 | var_entmax15_s1 | entmax15 | FAIL | False | 30442800 | 0.0000 | original |  | seed |  |
 | var_entmax15_s2 | entmax15 | FAIL | False | 30442800 | 0.0000 | original |  | seed |  |
 | var_entmax15_s3 | entmax15 | FAIL | False | 30442800 | 0.0000 | original |  | seed |  |
-| var_local_window_fp32 | local_window | FAIL | False | 30442800 | 0.0000 | original |  | max_steps | signature overlap risk vs runs: ['var_local_window', 'var_local_window_lr1e4', 'var_local_window_window16'] |
-| var_local_window_lr1e4 | local_window | FAIL | False | 30442800 | 0.0000 | original |  | max_steps; learning_rate | signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_window16'] |
-| var_local_window_window16 | local_window | FAIL | False | 30442800 | 0.0000 | original |  | max_steps | signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_lr1e4'] |
+| var_local_window_fp32 | local_window | FAIL | False | 30442800 | 0.0000 | original |  | max_steps | signature overlap risk vs runs: ['var_local_window', 'var_local_window_lr1e4', 'var_local_window_window16', 'var_local_window_a23_retrain'] |
+| var_local_window_lr1e4 | local_window | FAIL | False | 30442800 | 0.0000 | original |  | max_steps; learning_rate | signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_window16', 'var_local_window_a23_retrain'] |
+| var_local_window_window16 | local_window | FAIL | False | 30442800 | 0.0000 | original |  | max_steps | signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_lr1e4', 'var_local_window_a23_retrain'] |
+| var_local_window_a23_retrain | local_window | PASS | True | 30442800 | 0.0000 | original |  |  | signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_lr1e4', 'var_local_window_window16'] |
 | lr_sweep_add_lr1e4 | additive | FAIL | False | 30845232 | 1.3219 | original |  | max_steps; learning_rate | signature overlap risk vs runs: ['fast_add', 'lr_sweep_add_lr3e4', 'lr_sweep_add_lr1e3', 'lr_sweep_add_lr3e3']; parameter_changed |
 | lr_sweep_add_lr3e4 | additive | FAIL | False | 30845232 | 1.3219 | original |  | max_steps | signature overlap risk vs runs: ['fast_add', 'lr_sweep_add_lr1e4', 'lr_sweep_add_lr1e3', 'lr_sweep_add_lr3e3']; parameter_changed |
 | lr_sweep_add_lr1e3 | additive | FAIL | False | 30845232 | 1.3219 | original |  | max_steps; learning_rate | signature overlap risk vs runs: ['fast_add', 'lr_sweep_add_lr1e4', 'lr_sweep_add_lr3e4', 'lr_sweep_add_lr3e3']; parameter_changed |

@@ -30,7 +30,7 @@ DEFAULT_RUNS: tuple[str, ...] = (
     "var_global_local",
 )
 
-# Full archived wall: A17 (32) + A19 `fast_add_lr3e3_s{1,2,3}` → **35** rows.
+# Full archived wall: A17 (32) + A19 `fast_add_lr3e3_s{1,2,3}` + A23 `var_local_window_a23_retrain` → **36** rows.
 ARCHIVE_FAIRNESS_RUNS: tuple[str, ...] = (
     "fast_dot",
     "fast_add",
@@ -63,6 +63,7 @@ ARCHIVE_FAIRNESS_RUNS: tuple[str, ...] = (
     "var_local_window_fp32",
     "var_local_window_lr1e4",
     "var_local_window_window16",
+    "var_local_window_a23_retrain",
     "lr_sweep_add_lr1e4",
     "lr_sweep_add_lr3e4",
     "lr_sweep_add_lr1e3",
@@ -385,7 +386,7 @@ def main() -> None:
     p.add_argument(
         "--archive-audit",
         action="store_true",
-        help="Use full 35-run archived audit list (A17 wall + A19 fast_add_lr3e3_s*).",
+        help="Use full 36-run archived audit list (A17 wall + A19 fast_add_lr3e3_s* + A23 var_local_window_a23_retrain).",
     )
     args = p.parse_args()
 

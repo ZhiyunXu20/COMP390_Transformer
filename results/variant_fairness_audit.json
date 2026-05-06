@@ -316,7 +316,7 @@
       "parameter_delta_percent": 0.0,
       "missing_files": [],
       "mismatched_fields": [],
-      "notes": "signature overlap risk vs runs: ['var_local_window_fp32', 'var_local_window_lr1e4', 'var_local_window_window16']",
+      "notes": "signature overlap risk vs runs: ['var_local_window_fp32', 'var_local_window_lr1e4', 'var_local_window_window16', 'var_local_window_a23_retrain']",
       "parameter_count_source": "training_meta.json",
       "flags": [],
       "training_meta_repaired": false
@@ -496,7 +496,7 @@
       "mismatched_fields": [
         "max_steps"
       ],
-      "notes": "signature overlap risk vs runs: ['var_local_window', 'var_local_window_lr1e4', 'var_local_window_window16']",
+      "notes": "signature overlap risk vs runs: ['var_local_window', 'var_local_window_lr1e4', 'var_local_window_window16', 'var_local_window_a23_retrain']",
       "parameter_count_source": "training_meta.json",
       "flags": [],
       "training_meta_repaired": false
@@ -513,7 +513,7 @@
         "max_steps",
         "learning_rate"
       ],
-      "notes": "signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_window16']",
+      "notes": "signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_window16', 'var_local_window_a23_retrain']",
       "parameter_count_source": "training_meta.json",
       "flags": [],
       "training_meta_repaired": false
@@ -529,7 +529,21 @@
       "mismatched_fields": [
         "max_steps"
       ],
-      "notes": "signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_lr1e4']",
+      "notes": "signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_lr1e4', 'var_local_window_a23_retrain']",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_local_window_a23_retrain",
+      "attention_type": "local_window",
+      "status": "PASS",
+      "comparable_to_fast_dot": true,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [],
+      "notes": "signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_lr1e4', 'var_local_window_window16']",
       "parameter_count_source": "training_meta.json",
       "flags": [],
       "training_meta_repaired": false
