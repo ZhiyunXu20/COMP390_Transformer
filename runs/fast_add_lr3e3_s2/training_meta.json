@@ -1,0 +1,14 @@
+{
+  "determinism": {
+    "deterministic_requested": false,
+    "cudnn_benchmark": true,
+    "cudnn_deterministic": false,
+    "use_deterministic_algorithms": false,
+    "torch_version": "2.7.0+cu128"
+  },
+  "wall_time_seconds": 1796.9894686248153,
+  "num_parameters": 30845232,
+  "peak_gpu_memory_bytes": 54341515264,
+  "peak_gpu_memory_mib": 51824.107421875,
+  "run_directory": "/root/autodl-tmp/runs/fast_add_lr3e3_s2"
+}

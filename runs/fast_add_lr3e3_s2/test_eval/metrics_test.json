@@ -1,0 +1,42 @@
+{
+  "BLEU": 21.723361128228106,
+  "chrF": 44.7931696222831,
+  "chrF++": 42.80406660576032,
+  "BERTScore": 0.8911802768707275,
+  "COMET": 0.5845706348121166,
+  "exact_match_rate": 0.0408,
+  "average_length_ratio": 0.9756433165804308,
+  "number_of_test_examples": 2500,
+  "sacrebleu_signature": {
+    "format": "nrefs:1|case:mixed|eff:no|tok:13a|smooth:exp|version:2.6.0",
+    "info": {
+      "version": "2.6.0",
+      "nrefs": 1,
+      "bs": null,
+      "ar": null,
+      "seed": null,
+      "test": null,
+      "lang": null,
+      "origlang": null,
+      "subset": null,
+      "case": "mixed",
+      "eff": "no",
+      "tok": "13a",
+      "smooth": "exp"
+    }
+  },
+  "filtering_rules": "Decoder 覆盖 test.tsv 中所有「非空且恰有两列 Tab」的句对；不对 identical_parallel / high_similarity 做跳过（与训练期 BLEU 子样本逻辑不同）。 空行或列数≠2 的行不进入评估，计数见 anomaly_counts_in_test_file。",
+  "anomaly_counts_in_test_file": {
+    "lines_total_read": 2500,
+    "lines_empty_or_whitespace_only": 0,
+    "lines_nonempty_but_not_two_tab_columns": 0,
+    "lines_loaded_as_parallel_pairs": 2500
+  },
+  "checkpoint": "/root/autodl-tmp/runs/fast_add_lr3e3_s2/best.pt",
+  "test_file": "/root/autodl-tmp/data/splits/en_fr_50k_seed42/test.tsv",
+  "pkg": "small_try",
+  "max_new_tokens": 64,
+  "batch_size": 32,
+  "attention_type": "additive",
+  "n_heads": 4
+}

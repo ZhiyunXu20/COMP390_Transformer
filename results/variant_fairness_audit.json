@@ -45,7 +45,7 @@
       "parameter_delta_percent": 1.3219283377350308,
       "missing_files": [],
       "mismatched_fields": [],
-      "notes": "parameter_changed",
+      "notes": "signature overlap risk vs runs: ['lr_sweep_add_lr1e4', 'lr_sweep_add_lr3e4', 'lr_sweep_add_lr1e3', 'lr_sweep_add_lr3e3']; parameter_changed",
       "parameter_count_source": "training_meta.json",
       "flags": [
         "parameter_changed"
@@ -89,6 +89,108 @@
         "repaired_training_meta"
       ],
       "training_meta_repaired": true
+    },
+    {
+      "run": "fast_dot_s1",
+      "attention_type": "dot_product",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "fast_dot_s2",
+      "attention_type": "dot_product",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "fast_dot_s3",
+      "attention_type": "dot_product",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "fast_add_s1",
+      "attention_type": "additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "fast_add_s2",
+      "attention_type": "additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "fast_add_s3",
+      "attention_type": "additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
     },
     {
       "run": "var_bilinear",
@@ -157,7 +259,7 @@
       "parameter_delta_percent": 0.0,
       "missing_files": [],
       "mismatched_fields": [],
-      "notes": "",
+      "notes": "signature overlap risk vs runs: ['var_local_window_fp32', 'var_local_window_lr1e4', 'var_local_window_window16']",
       "parameter_count_source": "training_meta.json",
       "flags": [],
       "training_meta_repaired": false
@@ -174,6 +276,280 @@
       "notes": "",
       "parameter_count_source": "training_meta.json",
       "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_bilinear_s1",
+      "attention_type": "bilinear",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30639408,
+      "parameter_delta_percent": 0.6458275848476487,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_bilinear_s2",
+      "attention_type": "bilinear",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30639408,
+      "parameter_delta_percent": 0.6458275848476487,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_bilinear_s3",
+      "attention_type": "bilinear",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30639408,
+      "parameter_delta_percent": 0.6458275848476487,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_gated_dot_additive_s1",
+      "attention_type": "gated_dot_additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845280,
+      "parameter_delta_percent": 1.3220860104852379,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_gated_dot_additive_s2",
+      "attention_type": "gated_dot_additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845280,
+      "parameter_delta_percent": 1.3220860104852379,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_gated_dot_additive_s3",
+      "attention_type": "gated_dot_additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845280,
+      "parameter_delta_percent": 1.3220860104852379,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_entmax15_s1",
+      "attention_type": "entmax15",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_entmax15_s2",
+      "attention_type": "entmax15",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_entmax15_s3",
+      "attention_type": "entmax15",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [
+        "seed"
+      ],
+      "notes": "",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_local_window_fp32",
+      "attention_type": "local_window",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [
+        "max_steps"
+      ],
+      "notes": "signature overlap risk vs runs: ['var_local_window', 'var_local_window_lr1e4', 'var_local_window_window16']",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_local_window_lr1e4",
+      "attention_type": "local_window",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [
+        "max_steps",
+        "learning_rate"
+      ],
+      "notes": "signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_window16']",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "var_local_window_window16",
+      "attention_type": "local_window",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30442800,
+      "parameter_delta_percent": 0.0,
+      "missing_files": [],
+      "mismatched_fields": [
+        "max_steps"
+      ],
+      "notes": "signature overlap risk vs runs: ['var_local_window', 'var_local_window_fp32', 'var_local_window_lr1e4']",
+      "parameter_count_source": "training_meta.json",
+      "flags": [],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "lr_sweep_add_lr1e4",
+      "attention_type": "additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [
+        "max_steps",
+        "learning_rate"
+      ],
+      "notes": "signature overlap risk vs runs: ['fast_add', 'lr_sweep_add_lr3e4', 'lr_sweep_add_lr1e3', 'lr_sweep_add_lr3e3']; parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "lr_sweep_add_lr3e4",
+      "attention_type": "additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [
+        "max_steps"
+      ],
+      "notes": "signature overlap risk vs runs: ['fast_add', 'lr_sweep_add_lr1e4', 'lr_sweep_add_lr1e3', 'lr_sweep_add_lr3e3']; parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "lr_sweep_add_lr1e3",
+      "attention_type": "additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [
+        "max_steps",
+        "learning_rate"
+      ],
+      "notes": "signature overlap risk vs runs: ['fast_add', 'lr_sweep_add_lr1e4', 'lr_sweep_add_lr3e4', 'lr_sweep_add_lr3e3']; parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "lr_sweep_add_lr3e3",
+      "attention_type": "additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [
+        "max_steps",
+        "learning_rate"
+      ],
+      "notes": "signature overlap risk vs runs: ['fast_add', 'lr_sweep_add_lr1e4', 'lr_sweep_add_lr3e4', 'lr_sweep_add_lr1e3']; parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
       "training_meta_repaired": false
     }
   ]

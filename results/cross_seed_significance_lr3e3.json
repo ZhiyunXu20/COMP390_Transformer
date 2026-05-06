@@ -1,0 +1,99 @@
+{
+  "experiment_a": "fast_dot",
+  "experiment_b": "fast_add_lr3e3",
+  "csv": "/root/autodl-tmp/results/ablation_per_seed.csv",
+  "scipy_available": true,
+  "stats_backend": "scipy",
+  "metrics": {
+    "BLEU": {
+      "metric": "BLEU",
+      "fast_dot": {
+        "mean": 15.803035002279444,
+        "std": 0.5224897555011587,
+        "n": 3,
+        "values": [
+          16.27755073167496,
+          15.243098254602273,
+          15.8884560205611
+        ]
+      },
+      "fast_add_lr3e3": {
+        "mean": 21.56496996099526,
+        "std": 0.41807099063290704,
+        "n": 3,
+        "values": [
+          21.88070162614213,
+          21.723361128228106,
+          21.090847128615547
+        ]
+      },
+      "mean_difference_a_minus_b": -5.761934958715816,
+      "welch_t": -14.914104008692998,
+      "welch_df": 3.816406144014942,
+      "ci_95_low": -6.855250878593497,
+      "ci_95_high": -4.668619038838135,
+      "p_value_two_sided": 0.00015932328342186365,
+      "conclusion": "fast_dot is significantly worse than fast_add_lr3e3 at α=0.05 (two-sided)."
+    },
+    "chrF++": {
+      "metric": "chrF++",
+      "fast_dot": {
+        "mean": 35.78964843209925,
+        "std": 0.5792686798590195,
+        "n": 3,
+        "values": [
+          36.13274834172182,
+          35.12084196151532,
+          36.1153549930606
+        ]
+      },
+      "fast_add_lr3e3": {
+        "mean": 42.6973303932779,
+        "std": 0.45944182754251317,
+        "n": 3,
+        "values": [
+          43.09400931636172,
+          42.80406660576032,
+          42.19391525771166
+        ]
+      },
+      "mean_difference_a_minus_b": -6.907681961178653,
+      "welch_t": -16.182389719548517,
+      "welch_df": 3.8028463119459004,
+      "ci_95_low": -8.117476626399524,
+      "ci_95_high": -5.697887295957782,
+      "p_value_two_sided": 0.00011995347665561184,
+      "conclusion": "fast_dot is significantly worse than fast_add_lr3e3 at α=0.05 (two-sided)."
+    },
+    "COMET": {
+      "metric": "COMET",
+      "fast_dot": {
+        "mean": 0.5088854800025622,
+        "std": 0.00324447286205492,
+        "n": 3,
+        "values": [
+          0.5067629693210125,
+          0.5072731954693794,
+          0.5126202752172947
+        ]
+      },
+      "fast_add_lr3e3": {
+        "mean": 0.577573854881525,
+        "std": 0.006086670107768038,
+        "n": 3,
+        "values": [
+          0.5734998296558858,
+          0.5845706348121166,
+          0.5746511001765728
+        ]
+      },
+      "mean_difference_a_minus_b": -0.06868837487896284,
+      "welch_t": -17.24877739094735,
+      "welch_df": 3.0516466955077055,
+      "ci_95_low": -0.08124108857185193,
+      "ci_95_high": -0.05613566118607376,
+      "p_value_two_sided": 0.00038406592578191023,
+      "conclusion": "fast_dot is significantly worse than fast_add_lr3e3 at α=0.05 (two-sided)."
+    }
+  }
+}

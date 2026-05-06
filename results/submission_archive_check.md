@@ -1,7 +1,7 @@
 # Submission archive check
 
 - **repository**: `/root/autodl-tmp`
-- **--strict**: `True`
+- **--strict**: `False`
 - **overall**: **WARN**
 
 ## Python package / script directories
@@ -156,4 +156,4 @@
 ## estimated archive size (non-ignored files)
 
 - **status**: **PASS**
-- [PASS] ~73.5 MiB for files not matched by `git check-ignore` (local `du -sh runs/` may be much larger if checkpoints exist but are ignored)
+- [PASS] ~7344.1 MiB for files not matched by `git check-ignore` (local `du -sh runs/` may be much larger if checkpoints exist but are ignored)

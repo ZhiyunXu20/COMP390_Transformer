@@ -11,6 +11,8 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
+import statistics
 import sys
 from pathlib import Path
 from typing import Any
@@ -30,7 +32,8 @@ DEFAULT_RUNS: tuple[str, ...] = (
     "var_global_local",
 )
 
-FIELDNAMES: tuple[str, ...] = (
+# CSV columns (machine-oriented; BLEU/chrF/chrF++/COMET duplicate means where applicable).
+CSV_FIELDNAMES: tuple[str, ...] = (
     "run",
     "pkg",
     "attention_type",
@@ -39,6 +42,39 @@ FIELDNAMES: tuple[str, ...] = (
     "chrF",
     "chrF++",
     "COMET",
+    "n_seeds",
+    "Welch_p_vs_fast_dot_BLEU",
+    "BERTScore",
+    "number_of_test_examples",
+    "parameter_count",
+    "train_time_seconds",
+    "peak_gpu_memory_mib",
+    "status",
+    "notes",
+    "BLEU_mean",
+    "BLEU_std",
+    "BLEU_n_seeds",
+    "chrF_mean",
+    "chrF_std",
+    "chrFpp_mean",
+    "chrFpp_std",
+    "COMET_mean",
+    "COMET_std",
+)
+
+# Markdown table (Welch column title matches thesis-facing wording).
+MD_COL_WELCH = "Welch p vs fast_dot (BLEU)"
+MD_FIELDNAMES: tuple[str, ...] = (
+    "run",
+    "pkg",
+    "attention_type",
+    "mechanism_family",
+    "BLEU",
+    "chrF",
+    "chrF++",
+    "COMET",
+    "n_seeds",
+    MD_COL_WELCH,
     "BERTScore",
     "number_of_test_examples",
     "parameter_count",
@@ -63,6 +99,225 @@ def run_to_variant_family() -> dict[str, str]:
 
 
 VARIANT_RUN_FAMILY: dict[str, str] = run_to_variant_family()
+
+# experiment column in results/ablation_per_seed.csv → aggregate 3-seed held-out metrics
+RUN_TO_EXPERIMENT: dict[str, str] = {
+    "fast_dot": "fast_dot",
+    "fast_add": "fast_add",
+    "var_bilinear": "var_bilinear",
+    "var_gated_dot_additive": "var_gated_dot_additive",
+    "var_entmax15": "var_entmax15",
+}
+
+
+def load_multiseed_from_csv(path: Path) -> dict[str, dict[str, Any]]:
+    if not path.is_file():
+        return {}
+    by_exp: dict[str, list[dict[str, str]]] = {}
+    with path.open(encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            exp = (row.get("experiment") or "").strip()
+            if not exp:
+                continue
+            if (row.get("checkpoint_kind") or "best").strip() != "best":
+                continue
+            by_exp.setdefault(exp, []).append(row)
+    out: dict[str, dict[str, Any]] = {}
+    for exp, rows in by_exp.items():
+        if len(rows) < 3:
+            continue
+
+        def col_f(key: str) -> list[float]:
+            return [float(r[key]) for r in rows]
+
+        bleu = col_f("BLEU")
+        chrf = col_f("chrF")
+        chrfpp = col_f("chrF++")
+        comet = col_f("COMET")
+        n = len(rows)
+        out[exp] = {
+            "n": n,
+            "BLEU": bleu,
+            "chrF": chrf,
+            "chrF++": chrfpp,
+            "COMET": comet,
+            "bleu_mean": statistics.mean(bleu),
+            "bleu_std": statistics.stdev(bleu) if n > 1 else 0.0,
+            "chrf_mean": statistics.mean(chrf),
+            "chrf_std": statistics.stdev(chrf) if n > 1 else 0.0,
+            "chrfpp_mean": statistics.mean(chrfpp),
+            "chrfpp_std": statistics.stdev(chrfpp) if n > 1 else 0.0,
+            "comet_mean": statistics.mean(comet),
+            "comet_std": statistics.stdev(comet) if n > 1 else 0.0,
+        }
+    return out
+
+
+def welch_p_value_two_sample(a: list[float], b: list[float]) -> float | None:
+    if len(a) < 2 or len(b) < 2:
+        return None
+    try:
+        from scipy.stats import ttest_ind
+
+        return float(ttest_ind(a, b, equal_var=False).pvalue)
+    except Exception:
+        return None
+
+
+def fmt_ms(mean: float, std: float, n: int) -> str:
+    return f"{mean:.2f} ± {std:.2f} (n={n})"
+
+
+def fmt_ms_comet(mean: float, std: float, n: int) -> str:
+    return f"{mean:.4f} ± {std:.4f} (n={n})"
+
+
+def fmt_welch_md(p: float | None) -> str:
+    if p is None:
+        return ""
+    s = f"{p:.4f}".rstrip("0").rstrip(".")
+    return f"p={s}"
+
+
+def legacy_single_seed_blurb(data: dict[str, Any] | None) -> str:
+    if not data:
+        return ""
+    try:
+        b = float(data["BLEU"])
+        cp = float(data["chrF++"])
+        co = float(data["COMET"])
+        return f"BLEU={b:.2f}, chrF++={cp:.2f}, COMET={co:.4f}"
+    except (TypeError, ValueError, KeyError):
+        b = data.get("BLEU")
+        cp = data.get("chrF++")
+        co = data.get("COMET")
+        return f"BLEU={b}, chrF++={cp}, COMET={co}"
+
+
+def annotate_row_for_export(
+    row: dict[str, Any],
+    run: str,
+    raw_metrics: dict[str, Any] | None,
+    ms: dict[str, dict[str, Any]],
+) -> None:
+    """Set MD strings, n_seeds, Welch column, CSV *_mean/*_std, and notes."""
+    exp = RUN_TO_EXPERIMENT.get(run)
+    base_notes = (row.get("notes") or "").strip()
+
+    if exp and exp in ms and ms[exp]["n"] >= 3:
+        s = ms[exp]
+        n = int(s["n"])
+        leg = legacy_single_seed_blurb(raw_metrics)
+        row["BLEU"] = fmt_ms(s["bleu_mean"], s["bleu_std"], n)
+        row["chrF"] = fmt_ms(s["chrf_mean"], s["chrf_std"], n)
+        row["chrF++"] = fmt_ms(s["chrfpp_mean"], s["chrfpp_std"], n)
+        row["COMET"] = fmt_ms_comet(s["comet_mean"], s["comet_std"], n)
+        row["n_seeds"] = n
+        ref = ms.get("fast_dot")
+        if exp == "fast_dot":
+            row[MD_COL_WELCH] = "—"
+            row["Welch_p_vs_fast_dot_BLEU"] = ""
+        elif ref and len(ref["BLEU"]) >= 3:
+            p = welch_p_value_two_sample(ref["BLEU"], s["BLEU"])
+            row[MD_COL_WELCH] = fmt_welch_md(p)
+            row["Welch_p_vs_fast_dot_BLEU"] = p if p is not None else ""
+        else:
+            row[MD_COL_WELCH] = ""
+            row["Welch_p_vs_fast_dot_BLEU"] = ""
+
+        row["BLEU_mean"] = s["bleu_mean"]
+        row["BLEU_std"] = s["bleu_std"]
+        row["BLEU_n_seeds"] = n
+        row["chrF_mean"] = s["chrf_mean"]
+        row["chrF_std"] = s["chrf_std"]
+        row["chrFpp_mean"] = s["chrfpp_mean"]
+        row["chrFpp_std"] = s["chrfpp_std"]
+        row["COMET_mean"] = s["comet_mean"]
+        row["COMET_std"] = s["comet_std"]
+
+        extra = f"3 seeds from `results/ablation_per_seed.csv`; legacy single-seed `runs/{run}`: {leg}."
+        row["notes"] = f"{extra} {base_notes}".strip()
+        return
+
+    st = str(row.get("status") or "")
+    is_failed = st == "failed_nan" or run == "var_local_window"
+
+    snap: dict[str, Any] = {k: row.get(k) for k in ("BLEU", "chrF", "chrF++", "COMET")}
+
+    if is_failed:
+        row["n_seeds"] = "failed_nan"
+        row[MD_COL_WELCH] = ""
+        row["Welch_p_vs_fast_dot_BLEU"] = ""
+        for key in ("BLEU", "chrF", "chrF++", "COMET"):
+            v = snap[key]
+            if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+                row[key] = str(v)
+            else:
+                row[key] = fmt_cell(v)
+        for k_src, k_m in (
+            ("BLEU", "BLEU_mean"),
+            ("chrF", "chrF_mean"),
+            ("chrF++", "chrFpp_mean"),
+            ("COMET", "COMET_mean"),
+        ):
+            v = snap[k_src]
+            if isinstance(v, (int, float)) and not (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
+                row[k_m] = float(v)
+            else:
+                row[k_m] = ""
+        for k in ("BLEU_std", "chrF_std", "chrFpp_std", "COMET_std"):
+            row[k] = ""
+        row["BLEU_n_seeds"] = 0
+    else:
+        row["n_seeds"] = 1
+        row[MD_COL_WELCH] = ""
+        row["Welch_p_vs_fast_dot_BLEU"] = ""
+        for key in ("BLEU", "chrF", "chrF++", "COMET"):
+            v = snap[key]
+            if v is None or v == "":
+                row[key] = ""
+                continue
+            if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+                row[key] = str(v)
+                continue
+            if isinstance(v, (int, float)):
+                if key == "COMET":
+                    row[key] = f"{float(v):.4f} (n=1)"
+                else:
+                    row[key] = f"{float(v):.2f} (n=1)"
+        for k_src, k_m, k_sd in (
+            ("BLEU", "BLEU_mean", "BLEU_std"),
+            ("chrF", "chrF_mean", "chrF_std"),
+            ("chrF++", "chrFpp_mean", "chrFpp_std"),
+            ("COMET", "COMET_mean", "COMET_std"),
+        ):
+            v = snap[k_src]
+            if isinstance(v, (int, float)) and not (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
+                row[k_m] = float(v)
+                row[k_sd] = ""
+            else:
+                row[k_m] = ""
+                row[k_sd] = ""
+        row["BLEU_n_seeds"] = 1
+
+    caveat = "(single seed; not statistically tested vs fast_dot)"
+    single_variants = {
+        "var_sparsemax",
+        "var_local_window",
+        "var_global_local",
+        "head_1h_dot",
+        "swap_fr_dot",
+    }
+    if run in single_variants:
+        row["notes"] = f"{caveat} {base_notes}".strip()
+
+    if run.startswith("var_") and run not in RUN_TO_EXPERIMENT and run not in (
+        "var_sparsemax",
+        "var_local_window",
+        "var_global_local",
+    ):
+        row["notes"] = f"{caveat} {base_notes}".strip()
 
 
 def infer_pkg(run: str) -> str:
@@ -153,11 +408,6 @@ def build_row(
             "val_loss=NaN; outputs empty; numerical-stability failure, not mechanism comparison."
         )
 
-    if run.startswith("var_"):
-        notes_parts.append(
-            "single seed; ranking below |Δ| = 1 BLEU is unreliable due to seed variance"
-        )
-
     notes = "; ".join(notes_parts)
 
     if data is None:
@@ -226,6 +476,8 @@ def write_md(
     rows: list[dict[str, Any]],
     repo_root: Path,
     csv_path: Path,
+    *,
+    multiseed_unified: bool,
 ) -> None:
     disclaimer = (
         "**All reported scores are from independent held-out test evaluation, "
@@ -236,9 +488,19 @@ def write_md(
         "to refresh).\n\n"
         "Training-time fields (`parameter_count`, `train_time_seconds`, `peak_gpu_memory_mib`) are read from "
         "`training_meta.json` and are **blank when `metadata_repaired=true`**.\n\n"
-        "---\n\n"
     )
-    headers = list(FIELDNAMES)
+    if multiseed_unified:
+        disclaimer += (
+            "**Multi-seed rows** (`n=3`): metrics are **mean ± sample std** over held-out `test_eval` scores from "
+            "`results/ablation_per_seed.csv` (one value per training seed). **"
+            + MD_COL_WELCH
+            + "** is a two-sided Welch two-sample *p*-value (variant seeds vs **fast_dot** seeds); "
+            "— on the **fast_dot** row means *reference*. "
+            "**Single-seed** exploratory rows are annotated in **notes**; full Welch prose lives in "
+            "`results/variant_multiseed_summary.md`.\n\n"
+        )
+    disclaimer += "---\n\n"
+    headers = list(MD_FIELDNAMES)
     sep = "|" + "|".join(["---"] * len(headers)) + "|"
     head = "| " + " | ".join(headers) + " |"
     lines = [
@@ -266,6 +528,41 @@ def write_md(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def csv_export_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Map in-memory row to CSV columns; primary BLEU/chrF/chrF++/COMET columns = means."""
+    mean_alias = {
+        "BLEU": "BLEU_mean",
+        "chrF": "chrF_mean",
+        "chrF++": "chrFpp_mean",
+        "COMET": "COMET_mean",
+    }
+    out: dict[str, Any] = {}
+    for k in CSV_FIELDNAMES:
+        if k in mean_alias:
+            out[k] = row.get(mean_alias[k], "")
+        else:
+            out[k] = row.get(k, "")
+    return out
+
+
+def apply_legacy_export_columns(row: dict[str, Any]) -> None:
+    row[MD_COL_WELCH] = ""
+    row["Welch_p_vs_fast_dot_BLEU"] = ""
+    row["n_seeds"] = ""
+    for k in (
+        "BLEU_mean",
+        "BLEU_std",
+        "BLEU_n_seeds",
+        "chrF_mean",
+        "chrF_std",
+        "chrFpp_mean",
+        "chrFpp_std",
+        "COMET_mean",
+        "COMET_std",
+    ):
+        row[k] = ""
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Summarize test_eval metrics only (held-out test).")
     p.add_argument(
@@ -291,16 +588,31 @@ def main() -> None:
         type=str,
         default="results/attention_variants_test_summary.md",
     )
+    p.add_argument(
+        "--multiseed-csv",
+        type=str,
+        default="results/ablation_per_seed.csv",
+        help="If this file exists and contains >=3 seeds for fast_dot, merge multi-seed means±std and Welch p vs fast_dot.",
+    )
     args = p.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
     sanity_map = load_sanity_status_by_run(repo_root)
 
+    ms_path = repo_root / args.multiseed_csv if not Path(args.multiseed_csv).is_absolute() else Path(args.multiseed_csv)
+    ms = load_multiseed_from_csv(ms_path)
+    ms_ok = "fast_dot" in ms and int(ms["fast_dot"]["n"]) >= 3
+
     rows: list[dict[str, Any]] = []
     for run in args.runs:
         met_path = repo_root / "runs" / run / "test_eval" / "metrics_test.json"
         data = load_json(met_path)
-        rows.append(build_row(run, data, sanity_map, repo_root))
+        row = build_row(run, data, sanity_map, repo_root)
+        if ms_ok:
+            annotate_row_for_export(row, run, data, ms)
+        else:
+            apply_legacy_export_columns(row)
+        rows.append(row)
 
     results_dir = repo_root / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -311,12 +623,12 @@ def main() -> None:
     md_path.parent.mkdir(parents=True, exist_ok=True)
 
     with csv_path.open("w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=list(FIELDNAMES))
+        w = csv.DictWriter(f, fieldnames=list(CSV_FIELDNAMES))
         w.writeheader()
         for row in rows:
-            w.writerow({k: row.get(k, "") for k in FIELDNAMES})
+            w.writerow(csv_export_row(row))
 
-    write_md(md_path, rows, repo_root, csv_path)
+    write_md(md_path, rows, repo_root, csv_path, multiseed_unified=ms_ok)
 
     print(f"Wrote {csv_path}", file=sys.stderr)
     print(f"Wrote {md_path}", file=sys.stderr)
