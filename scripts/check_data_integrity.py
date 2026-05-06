@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Verify split TSV SHA-256 records match on-disk files (manifest + split_metadata)."""
+"""Verify split TSV SHA-256 records match on-disk files (manifest + split_metadata).
+
+Optionally, if data/tokenizer_metadata.json exists and defines train_file_sha256,
+that hash must match SHA-256 of the split train.tsv under --split-subdir.
+"""
 
 from __future__ import annotations
 
@@ -132,6 +136,51 @@ def run_integrity_check(
                     "status": st,
                 }
             )
+
+    # Optional: tokenizer training corpus fingerprint (must match on-disk train.tsv).
+    tok_path = repo / "data" / "tokenizer_metadata.json"
+    tok = load_json(tok_path)
+    if isinstance(tok, dict):
+        rec_tok = tok.get("train_file_sha256")
+        if isinstance(rec_tok, str) and rec_tok.strip():
+            act_train = actual.get("train.tsv")
+            if act_train is None:
+                rows.append(
+                    {
+                        "file": "train.tsv",
+                        "source": "tokenizer_metadata.json (train_file_sha256 vs train.tsv SHA-256)",
+                        "recorded_hash": rec_tok,
+                        "actual_hash": "—",
+                        "status": "FAIL (train.tsv missing; cannot verify tokenizer fingerprint)",
+                    }
+                )
+                ok = False
+            elif rec_tok.strip().lower() == act_train.lower():
+                rows.append(
+                    {
+                        "file": "train.tsv",
+                        "source": "tokenizer_metadata.json (train_file_sha256 vs train.tsv SHA-256)",
+                        "recorded_hash": rec_tok,
+                        "actual_hash": act_train,
+                        "status": "PASS",
+                    }
+                )
+            else:
+                rows.append(
+                    {
+                        "file": "train.tsv",
+                        "source": "tokenizer_metadata.json (train_file_sha256 vs train.tsv SHA-256)",
+                        "recorded_hash": rec_tok,
+                        "actual_hash": act_train,
+                        "status": "FAIL",
+                    }
+                )
+                ok = False
+                print(
+                    "Data integrity FAIL: data/tokenizer_metadata.json train_file_sha256 "
+                    f"does not match SHA-256 of {split_dir / 'train.tsv'}.",
+                    file=sys.stderr,
+                )
 
     if write_report and report_path is not None:
         report_path.parent.mkdir(parents=True, exist_ok=True)

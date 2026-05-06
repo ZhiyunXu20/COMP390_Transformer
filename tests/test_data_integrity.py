@@ -91,3 +91,16 @@ def test_data_integrity_meta_mismatch_fails(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert _run_checker(tmp_path, split_rel) == 1
+
+
+def test_tokenizer_metadata_train_sha_mismatch_fails(tmp_path: Path) -> None:
+    split_rel = "data/splits/test_integrity_tok"
+    split_dir = tmp_path / split_rel
+    _write_minimal_split(split_dir, manifest_train_wrong=False)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    (data_dir / "tokenizer_metadata.json").write_text(
+        json.dumps({"train_file_sha256": "0" * 64}, indent=2),
+        encoding="utf-8",
+    )
+    assert _run_checker(tmp_path, split_rel) == 1
