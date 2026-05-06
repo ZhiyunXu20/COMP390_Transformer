@@ -70,6 +70,7 @@
 - 训练结束打印的「最终评估」仍使用该 `eval_loader`（`421:449:small_try/train.py`），写入 `final_bleu`、`final_val_loss`（`save_metrics_json`）。
 - **结论**：默认 **`metrics.json` 中的 `final_bleu` / `final_extra_metrics` 对应的是 `eval_split`（默认 val），不是 test**。  
   若 CLI `--eval-split test`，才会在 test 上算这些“final”数字（见 `train_runtime.apply_shared_cli_to_config` 对 `eval_split` 的覆盖）。
+- **Naming**：`metrics.json` **`final_bleu`** — historical naming; semantically a **sampled validation (eval_split) BLEU** with training-time skip filters. Always cross-reference **`test_eval/metrics_test.json`** for held-out test results. New training runs also write `final_bleu_*` / `final_extra_metrics_*` disambiguation fields (see `small_shared/metrics_json.py`).
 
 **与之对照**：`scripts/ablation_lib.evaluate_checkpoint_on_test` **固定** `TabParallelDataset(..., "test")`（`91:91`），其产出写入合并 metrics 的 `final_eval_on_test_split`（`merge_ablation_metrics_json`）。
 
