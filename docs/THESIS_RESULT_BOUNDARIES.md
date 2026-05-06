@@ -29,7 +29,7 @@
 
 ## 2. Exploratory single-seed results（探索性单-seed 结果）
 
-以下 **`attention_type`** 在 **`small_try`** 等路径中**已实现**，并以 **`runs/var_*`** 等形式完成了训练与 held-out test 终评。**主汇总表**为 **`results/attention_variants_test_summary.md`**（A18：在存在 **`results/ablation_per_seed.csv`** 时，`scripts/summarize_attention_variants.py --multiseed-csv` 将 **`fast_dot` / `fast_add` / A14 多 seed 变体** 的 test 指标合并为 **mean ± std (n=3)**，并给出 **Welch *p* vs `fast_dot` (BLEU)**；**`sparsemax` / `local_window` / `global_local`** 等仍以 **单 seed** 呈现于该表）。完整 Welch 叙事（Δ、95% CI、*t*、df，逐指标）见 **`results/variant_multiseed_summary.md`**。
+以下 **`attention_type`** 在 **`small_try`** 等路径中**已实现**，并以 **`runs/var_*`** 等形式完成了训练与 held-out test 终评。**主汇总表**为 **`results/attention_variants_test_summary.md`**（A18：在存在 **`results/ablation_per_seed.csv`** 时，`scripts/summarize_attention_variants.py --multiseed-csv` 将 **`fast_dot` / `fast_add` / `fast_add_lr3e3`（A19，匹配 dot 的 `lr=3e-3`）/ A14 多 seed 变体** 的 test 指标合并为 **mean ± std (n=3)**，并给出 **Welch *p* vs `fast_dot` (BLEU)**；**`sparsemax` / `local_window` / `global_local`** 等仍以 **单 seed** 呈现于该表）。完整 Welch 叙事（Δ、95% CI、*t*、df，逐指标）见 **`results/variant_multiseed_summary.md`**；**A19** 与 **`fast_dot`** 的专门对照另见 **`results/cross_seed_significance_lr3e3.{md,json}`**。
 
 | Variant | 备注 |
 |---------|------|

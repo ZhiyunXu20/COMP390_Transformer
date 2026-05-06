@@ -149,7 +149,7 @@
       "mismatched_fields": [
         "seed"
       ],
-      "notes": "parameter_changed",
+      "notes": "signature overlap risk vs runs: ['fast_add_lr3e3_s1']; parameter_changed",
       "parameter_count_source": "training_meta.json",
       "flags": [
         "parameter_changed"
@@ -167,7 +167,7 @@
       "mismatched_fields": [
         "seed"
       ],
-      "notes": "parameter_changed",
+      "notes": "signature overlap risk vs runs: ['fast_add_lr3e3_s2']; parameter_changed",
       "parameter_count_source": "training_meta.json",
       "flags": [
         "parameter_changed"
@@ -185,7 +185,64 @@
       "mismatched_fields": [
         "seed"
       ],
-      "notes": "parameter_changed",
+      "notes": "signature overlap risk vs runs: ['fast_add_lr3e3_s3']; parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "fast_add_lr3e3_s1",
+      "attention_type": "additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [
+        "learning_rate",
+        "seed"
+      ],
+      "notes": "signature overlap risk vs runs: ['fast_add_s1']; parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "fast_add_lr3e3_s2",
+      "attention_type": "additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [
+        "learning_rate",
+        "seed"
+      ],
+      "notes": "signature overlap risk vs runs: ['fast_add_s2']; parameter_changed",
+      "parameter_count_source": "training_meta.json",
+      "flags": [
+        "parameter_changed"
+      ],
+      "training_meta_repaired": false
+    },
+    {
+      "run": "fast_add_lr3e3_s3",
+      "attention_type": "additive",
+      "status": "FAIL",
+      "comparable_to_fast_dot": false,
+      "parameter_count": 30845232,
+      "parameter_delta_percent": 1.3219283377350308,
+      "missing_files": [],
+      "mismatched_fields": [
+        "learning_rate",
+        "seed"
+      ],
+      "notes": "signature overlap risk vs runs: ['fast_add_s3']; parameter_changed",
       "parameter_count_source": "training_meta.json",
       "flags": [
         "parameter_changed"

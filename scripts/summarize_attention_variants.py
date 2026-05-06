@@ -22,6 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RUNS: tuple[str, ...] = (
     "fast_dot",
     "fast_add",
+    "fast_add_lr3e3",
     "head_1h_dot",
     "swap_fr_dot",
     "var_bilinear",
@@ -104,9 +105,15 @@ VARIANT_RUN_FAMILY: dict[str, str] = run_to_variant_family()
 RUN_TO_EXPERIMENT: dict[str, str] = {
     "fast_dot": "fast_dot",
     "fast_add": "fast_add",
+    "fast_add_lr3e3": "fast_add_lr3e3",
     "var_bilinear": "var_bilinear",
     "var_gated_dot_additive": "var_gated_dot_additive",
     "var_entmax15": "var_entmax15",
+}
+
+# Display row has no `runs/<run>/test_eval/` — read representative seed for base fields / legacy blurb.
+MULTISEED_ROW_ARTIFACT_RUN: dict[str, str] = {
+    "fast_add_lr3e3": "fast_add_lr3e3_s1",
 }
 
 
@@ -236,7 +243,14 @@ def annotate_row_for_export(
         row["COMET_mean"] = s["comet_mean"]
         row["COMET_std"] = s["comet_std"]
 
-        extra = f"3 seeds from `results/ablation_per_seed.csv`; legacy single-seed `runs/{run}`: {leg}."
+        leg_path = MULTISEED_ROW_ARTIFACT_RUN.get(run, run)
+        if leg_path != run:
+            extra = (
+                f"3 seeds from `results/ablation_per_seed.csv`; "
+                f"representative `runs/{leg_path}/test_eval` metrics (notes blurbs): {leg}."
+            )
+        else:
+            extra = f"3 seeds from `results/ablation_per_seed.csv`; legacy single-seed `runs/{run}`: {leg}."
         row["notes"] = f"{extra} {base_notes}".strip()
         return
 
@@ -331,7 +345,7 @@ def infer_pkg(run: str) -> str:
 def mechanism_family(run: str, _attention_type: str | None) -> str:
     if run in VARIANT_RUN_FAMILY:
         return VARIANT_RUN_FAMILY[run]
-    if run in ("fast_dot", "head_1h_dot", "swap_fr_dot", "fast_add"):
+    if run in ("fast_dot", "head_1h_dot", "swap_fr_dot", "fast_add", "fast_add_lr3e3"):
         return "scoring"
     return ""
 
@@ -382,7 +396,10 @@ def build_row(
     data: dict[str, Any] | None,
     sanity_map: dict[str, str],
     repo_root: Path,
+    *,
+    artifact_run: str | None = None,
 ) -> dict[str, Any]:
+    ar = artifact_run if artifact_run is not None else run
     pkg = infer_pkg(run)
     att = None
     if data:
@@ -391,9 +408,9 @@ def build_row(
 
     mech = mechanism_family(run, att)
 
-    param_c, train_t, peak_mib = training_meta_columns(repo_root, run)
+    param_c, train_t, peak_mib = training_meta_columns(repo_root, ar)
 
-    status = sanity_map.get(run, "")
+    status = sanity_map.get(run) or sanity_map.get(ar) or ""
     if not status and data is None:
         status = "missing_artifacts"
 
@@ -426,7 +443,7 @@ def build_row(
             "train_time_seconds": train_t if train_t is not None else "",
             "peak_gpu_memory_mib": peak_mib if peak_mib is not None else "",
             "status": status or "missing_artifacts",
-            "notes": f"missing runs/{run}/test_eval/metrics_test.json; {notes}".strip("; "),
+            "notes": f"missing runs/{ar}/test_eval/metrics_test.json; {notes}".strip("; "),
         }
 
     return {
@@ -605,9 +622,11 @@ def main() -> None:
 
     rows: list[dict[str, Any]] = []
     for run in args.runs:
-        met_path = repo_root / "runs" / run / "test_eval" / "metrics_test.json"
+        artifact_run = MULTISEED_ROW_ARTIFACT_RUN.get(run)
+        disk = artifact_run or run
+        met_path = repo_root / "runs" / disk / "test_eval" / "metrics_test.json"
         data = load_json(met_path)
-        row = build_row(run, data, sanity_map, repo_root)
+        row = build_row(run, data, sanity_map, repo_root, artifact_run=artifact_run)
         if ms_ok:
             annotate_row_for_export(row, run, data, ms)
         else:

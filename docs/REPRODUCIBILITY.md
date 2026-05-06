@@ -139,7 +139,7 @@ Read-only cross-run check: same splits / train-only tokenizers / backbone & budg
 ```bash
 cd "$REPO"
 python scripts/check_variant_experiment_fairness.py \
-  --runs fast_dot fast_add var_bilinear var_gated_dot_additive var_sparsemax var_entmax15 var_local_window var_global_local
+  --archive-audit
 ```
 
 省略 `--runs` 时使用脚本内置默认列表（含 `fast_dot`、`fast_add`、`head_1h_dot`、若干 `var_*` 等）；可用 `--runs-root`、`--output-md`、`--output-json` 自定义路径。

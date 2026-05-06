@@ -9,6 +9,33 @@
     "notes": []
   },
   {
+    "run": "fast_add_lr3e3_s1",
+    "status": "ok",
+    "bleu": "21.88",
+    "chrf": "45.09",
+    "val_loss": "2.7883",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "fast_add_lr3e3_s2",
+    "status": "ok",
+    "bleu": "21.72",
+    "chrf": "44.79",
+    "val_loss": "2.7700",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "fast_add_lr3e3_s3",
+    "status": "ok",
+    "bleu": "21.09",
+    "chrf": "44.18",
+    "val_loss": "2.7573",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
     "run": "fast_add_s1",
     "status": "ok",
     "bleu": "7.76",

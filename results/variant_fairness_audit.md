@@ -21,9 +21,12 @@ Reference run: **`fast_dot`** (parameter deltas vs this run when counts availabl
 | fast_dot_s1 | dot_product | FAIL | False | 30442800 | 0.0000 | original |  | seed |  |
 | fast_dot_s2 | dot_product | FAIL | False | 30442800 | 0.0000 | original |  | seed |  |
 | fast_dot_s3 | dot_product | FAIL | False | 30442800 | 0.0000 | original |  | seed |  |
-| fast_add_s1 | additive | FAIL | False | 30845232 | 1.3219 | original |  | seed | parameter_changed |
-| fast_add_s2 | additive | FAIL | False | 30845232 | 1.3219 | original |  | seed | parameter_changed |
-| fast_add_s3 | additive | FAIL | False | 30845232 | 1.3219 | original |  | seed | parameter_changed |
+| fast_add_s1 | additive | FAIL | False | 30845232 | 1.3219 | original |  | seed | signature overlap risk vs runs: ['fast_add_lr3e3_s1']; parameter_changed |
+| fast_add_s2 | additive | FAIL | False | 30845232 | 1.3219 | original |  | seed | signature overlap risk vs runs: ['fast_add_lr3e3_s2']; parameter_changed |
+| fast_add_s3 | additive | FAIL | False | 30845232 | 1.3219 | original |  | seed | signature overlap risk vs runs: ['fast_add_lr3e3_s3']; parameter_changed |
+| fast_add_lr3e3_s1 | additive | FAIL | False | 30845232 | 1.3219 | original |  | learning_rate; seed | signature overlap risk vs runs: ['fast_add_s1']; parameter_changed |
+| fast_add_lr3e3_s2 | additive | FAIL | False | 30845232 | 1.3219 | original |  | learning_rate; seed | signature overlap risk vs runs: ['fast_add_s2']; parameter_changed |
+| fast_add_lr3e3_s3 | additive | FAIL | False | 30845232 | 1.3219 | original |  | learning_rate; seed | signature overlap risk vs runs: ['fast_add_s3']; parameter_changed |
 | var_bilinear | bilinear | PASS | True | 30639408 | 0.6458 | original |  |  |  |
 | var_gated_dot_additive | gated_dot_additive | WARN | True | 30845280 | 1.3221 | original |  |  | parameter_changed |
 | var_sparsemax | sparsemax | PASS | True | 30442800 | 0.0000 | original |  |  |  |

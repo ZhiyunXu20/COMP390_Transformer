@@ -30,6 +30,45 @@ DEFAULT_RUNS: tuple[str, ...] = (
     "var_global_local",
 )
 
+# Full archived wall: A17 (32) + A19 `fast_add_lr3e3_s{1,2,3}` → **35** rows.
+ARCHIVE_FAIRNESS_RUNS: tuple[str, ...] = (
+    "fast_dot",
+    "fast_add",
+    "head_1h_dot",
+    "swap_fr_dot",
+    "fast_dot_s1",
+    "fast_dot_s2",
+    "fast_dot_s3",
+    "fast_add_s1",
+    "fast_add_s2",
+    "fast_add_s3",
+    "fast_add_lr3e3_s1",
+    "fast_add_lr3e3_s2",
+    "fast_add_lr3e3_s3",
+    "var_bilinear",
+    "var_gated_dot_additive",
+    "var_sparsemax",
+    "var_entmax15",
+    "var_local_window",
+    "var_global_local",
+    "var_bilinear_s1",
+    "var_bilinear_s2",
+    "var_bilinear_s3",
+    "var_gated_dot_additive_s1",
+    "var_gated_dot_additive_s2",
+    "var_gated_dot_additive_s3",
+    "var_entmax15_s1",
+    "var_entmax15_s2",
+    "var_entmax15_s3",
+    "var_local_window_fp32",
+    "var_local_window_lr1e4",
+    "var_local_window_window16",
+    "lr_sweep_add_lr1e4",
+    "lr_sweep_add_lr3e4",
+    "lr_sweep_add_lr1e3",
+    "lr_sweep_add_lr3e3",
+)
+
 REFERENCE_RUN_NAME = "fast_dot"
 
 # Mismatch on these vs reference → FAIL (attention_type 除外).
@@ -343,14 +382,21 @@ def main() -> None:
     )
     p.add_argument("--output-md", type=str, default="results/variant_fairness_audit.md")
     p.add_argument("--output-json", type=str, default="results/variant_fairness_audit.json")
+    p.add_argument(
+        "--archive-audit",
+        action="store_true",
+        help="Use full 35-run archived audit list (A17 wall + A19 fast_add_lr3e3_s*).",
+    )
     args = p.parse_args()
+
+    run_list: list[str] = list(ARCHIVE_FAIRNESS_RUNS) if args.archive_audit else list(args.runs)
 
     repo_root = Path(args.repo_root).resolve()
     runs_root = Path(args.runs_root)
     if not runs_root.is_absolute():
         runs_root = repo_root / runs_root
 
-    ref_run_name = REFERENCE_RUN_NAME if REFERENCE_RUN_NAME in args.runs else args.runs[0]
+    ref_run_name = REFERENCE_RUN_NAME if REFERENCE_RUN_NAME in run_list else run_list[0]
     ref_dir = runs_root / ref_run_name
     ref_resolved = load_json(ref_dir / "resolved_config.json")
     ref_cfg = extract_cfg(ref_resolved) or {}
@@ -364,7 +410,7 @@ def main() -> None:
     )
 
     rows_core: list[dict[str, Any]] = []
-    for run_name in args.runs:
+    for run_name in run_list:
         run_dir = runs_root / run_name
         resolved_doc = load_json(run_dir / "resolved_config.json")
         cfg_dict = extract_cfg(resolved_doc)
