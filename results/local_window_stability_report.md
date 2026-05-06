@@ -46,5 +46,17 @@ The A15 probe directories (`var_local_window`, `var_local_window_fp32`, etc.) re
 
 ## Implications for dissertation
 
-Use the **Results** table and the diagnosis above when writing the thesis; cite **`results/local_window_stability_report.md`**. Do **not** claim the failure is **only** bf16 autocast—A15 fp32 control still diverges. Do **not** claim `local_window` is universally untrainable; claim only that **this repository’s dense local-window + padding interaction** fails under the tested protocol. Avoid claiming a sparse Longformer-style kernel; the code path is **dense L×L masked attention**.
+Cite **`results/local_window_stability_report.md`** when writing the thesis. Do **not** claim a sparse Longformer-style kernel; the code path is **dense L×L masked attention**.
+
+### Pre-A23 conclusion
+
+The original **`var_local_window`** run and three **A15** mitigation probes (**fp32** / **lower lr** / **wider window**) all diverged (NaN / BLEU=0). At the time, this was interpreted as an **implementation + protocol interaction failure** rather than a blanket “mechanism is impossible” claim, with the leading hypothesis pointing to **encoder local-band mask × batched key-padding** interaction (see **Diagnosis** above). Do **not** claim the failure is **only** bf16 autocast—the A15 fp32 control still diverges **on pre-patch code**.
+
+### Post-A23 conclusion
+
+After implementing **`safe_masked_softmax`** and **query-padding row mask** handling in **`small_shared/attention_ops.py`** (commit **`bd1b53e`**), **`runs/var_local_window_a23_retrain`** was retrained under the **exact same protocol** as the original failing run (**bf16**, **lr=3e-4**, **window=4**, **max_steps=3000**, **seed=42**) and reaches **held-out test BLEU=16.82**, **chrF++=36.69**, **COMET=0.523** on **2500** examples (**n=1**). This supports the view that the original failure was a **softmax-mask implementation bug**, not an inherent property of dense local-window attention as a mechanism.
+
+### Caveat
+
+**`var_local_window_a23_retrain`** is **single-seed**. The **16.82** BLEU result supports **trainability / non-trivial quality** in that seed; it does **not** establish statistical superiority over **`fast_dot`** (**n=3**, mean **15.80 ± 0.52**). We do **not** claim local-window **>** dot-product.
 

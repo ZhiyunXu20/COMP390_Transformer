@@ -17,7 +17,7 @@
 
 ## Interpretation (for thesis / boundaries)
 
-With **matched** `max_steps=3000` and **matched learning rate (`3e-3`)** to the dot baseline schedule, the cross-seed held-out contrast **fast_dot − additive** moves from **≈7.60 BLEU** (`fast_add` @ **`3e-4`**) to **≈-5.76 BLEU** (`fast_add_lr3e3`): the **ordering reverses** (additive mean BLEU exceeds dot). The shift in the mean contrast is **≈13.36 BLEU**. In thesis language, the original **~7.60 BLEU** dot margin at `3e-4` is **fully accounted for** by LR mismatch relative to this matched protocol (**≥100%** in the sense that the sign of the gap flips). Use Welch *t* / *p* above and the JSON for exact CIs.
+With **matched** `max_steps=3000`, **additive attention trained with a tuned higher learning rate (`3e-3`) under the same 3000-step budget, while dot-product retains its baseline lr=3e-4**, the cross-seed held-out contrast **fast_dot − additive** moves from **≈7.60 BLEU** (`fast_add` @ **`3e-4`**) to **≈-5.76 BLEU** (`fast_add_lr3e3`): the **ordering reverses** (additive mean BLEU exceeds dot). The shift in the mean contrast is **≈13.36 BLEU**. In thesis language, the original **~7.60 BLEU** dot margin at `3e-4` is **sufficient to account for and reverse the originally observed dot-product advantage under the tested protocols** (**the ranking sign reverses, which is a stronger condition than mere gap reduction**). **A19 demonstrates strong optimization confounding under matched per-mechanism learning-rate protocols; it does not prove the two mechanisms are intrinsically equivalent.** Use Welch *t* / *p* above and the JSON for exact CIs.
 
 ## Citations
 
