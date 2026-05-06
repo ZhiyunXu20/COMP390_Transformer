@@ -12,7 +12,7 @@
 
 ## Code archive contents
 
-用于论文补充材料或审稿人可下载的**代码归档**（不含可重新训练产生的权重）。打包前用 `python scripts/prepare_code_archive.py` 校验 held-out `predictions.jsonl` 与 `metrics_test.json` 是否成对，以及 `results/attention_variants_test_summary.csv` 中列出的 run 是否都有 `test_eval/metrics_test.json`；`--output-zip path.zip` 在通过校验后生成 zip。归档内容意向如下（最终 zip 以脚本逻辑为准：包含未被 `.gitignore` 排除的仓库文件，并始终排除 `.git/`）。
+用于论文补充材料或审稿人可下载的**代码归档**（不含可重新训练产生的权重）。打包前用 `python scripts/prepare_code_archive.py` 校验 held-out `predictions.jsonl` 与 `metrics_test.json` 是否成对，以及 `results/attention_variants_test_summary.csv`：**单行** run 需有 `runs/<run>/test_eval/metrics_test.json`；**`is_aggregate=true`** 行则需 `source_run_names` 中每个 seed run 的 `test_eval/metrics_test.json` 与 `predictions.jsonl` 均存在（不要求存在合成的 `runs/<aggregate>/`）。`--output-zip path.zip` 在通过校验后生成 zip。归档内容意向如下（最终 zip 以脚本逻辑为准：包含未被 `.gitignore` 排除的仓库文件，并始终排除 `.git/`）。
 
 **Include**
 

@@ -31,11 +31,17 @@ DEFAULT_RUNS: tuple[str, ...] = (
     "var_entmax15",
     "var_local_window",
     "var_global_local",
+    "var_local_window_a23_retrain",
 )
 
 # CSV columns (machine-oriented; BLEU/chrF/chrF++/COMET duplicate means where applicable).
 CSV_FIELDNAMES: tuple[str, ...] = (
     "run",
+    "experiment",
+    "is_aggregate",
+    "source_run_names",
+    "representative_run",
+    "metrics_source",
     "pkg",
     "attention_type",
     "mechanism_family",
@@ -252,6 +258,7 @@ def annotate_row_for_export(
         else:
             extra = f"3 seeds from `results/ablation_per_seed.csv`; legacy single-seed `runs/{run}`: {leg}."
         row["notes"] = f"{extra} {base_notes}".strip()
+        _apply_aggregate_provenance(row, exp)
         return
 
     st = str(row.get("status") or "")
@@ -320,6 +327,7 @@ def annotate_row_for_export(
         "var_sparsemax",
         "var_local_window",
         "var_global_local",
+        "var_local_window_a23_retrain",
         "head_1h_dot",
         "swap_fr_dot",
     }
@@ -330,8 +338,11 @@ def annotate_row_for_export(
         "var_sparsemax",
         "var_local_window",
         "var_global_local",
+        "var_local_window_a23_retrain",
     ):
         row["notes"] = f"{caveat} {base_notes}".strip()
+
+    _apply_single_seed_provenance(row, run)
 
 
 def infer_pkg(run: str) -> str:
@@ -345,6 +356,8 @@ def infer_pkg(run: str) -> str:
 def mechanism_family(run: str, _attention_type: str | None) -> str:
     if run in VARIANT_RUN_FAMILY:
         return VARIANT_RUN_FAMILY[run]
+    if run == "var_local_window_a23_retrain":
+        return VARIANT_RUN_FAMILY.get("var_local_window", "") or "connectivity"
     if run in ("fast_dot", "head_1h_dot", "swap_fr_dot", "fast_add", "fast_add_lr3e3"):
         return "scoring"
     return ""
@@ -515,6 +528,9 @@ def write_md(
             "— on the **fast_dot** row means *reference*. "
             "**Single-seed** exploratory rows are annotated in **notes**; full Welch prose lives in "
             "`results/variant_multiseed_summary.md`.\n\n"
+            "Companion CSV columns **`experiment`**, **`is_aggregate`**, **`source_run_names`**, "
+            "**`representative_run`**, **`metrics_source`** record aggregate vs per-run provenance "
+            "for validation (`prepare_code_archive.validate`).\n\n"
         )
     disclaimer += "---\n\n"
     headers = list(MD_FIELDNAMES)
@@ -562,6 +578,26 @@ def csv_export_row(row: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _multiseed_source_run_names(experiment: str) -> str:
+    return ";".join(f"{experiment}_s{i}" for i in (1, 2, 3))
+
+
+def _apply_single_seed_provenance(row: dict[str, Any], run: str) -> None:
+    row["experiment"] = run
+    row["is_aggregate"] = "false"
+    row["source_run_names"] = run
+    row["representative_run"] = run
+    row["metrics_source"] = f"runs/{run}/test_eval/metrics_test.json"
+
+
+def _apply_aggregate_provenance(row: dict[str, Any], experiment: str) -> None:
+    row["experiment"] = experiment
+    row["is_aggregate"] = "true"
+    row["source_run_names"] = _multiseed_source_run_names(experiment)
+    row["representative_run"] = f"{experiment}_s1"
+    row["metrics_source"] = "results/ablation_per_seed.csv"
+
+
 def apply_legacy_export_columns(row: dict[str, Any]) -> None:
     row[MD_COL_WELCH] = ""
     row["Welch_p_vs_fast_dot_BLEU"] = ""
@@ -578,6 +614,7 @@ def apply_legacy_export_columns(row: dict[str, Any]) -> None:
         "COMET_std",
     ):
         row[k] = ""
+    _apply_single_seed_provenance(row, str(row.get("run") or ""))
 
 
 def main() -> None:

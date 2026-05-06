@@ -1,7 +1,7 @@
 # Submission archive check
 
 - **repository**: `/root/autodl-tmp`
-- **--strict**: `False`
+- **--strict**: `True`
 - **overall**: **WARN**
 
 ## Python package / script directories
@@ -14,7 +14,7 @@
 - [PASS] `base_improve/`: 8 Python files
 - [PASS] `scripts/`: 24 Python files
 - [PASS] `experiments/`: 8 Python files
-- [PASS] `tests/`: 11 Python files
+- [PASS] `tests/`: 12 Python files
 - [PASS] `translate_cli/`: 1 Python files
 
 ## data/splits and tokenizers

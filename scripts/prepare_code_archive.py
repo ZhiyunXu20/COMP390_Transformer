@@ -4,8 +4,10 @@
 Pairs: for every runs/<run>/test_eval/metrics_test.json, expects runs/<run>/test_eval/predictions.jsonl
 unless --allow-missing-predictions.
 
-Also checks results/attention_variants_test_summary.csv: every listed run must have
-runs/<run>/test_eval/metrics_test.json.
+Also checks results/attention_variants_test_summary.csv: rows with is_aggregate=false
+must have runs/<run>/test_eval/metrics_test.json; rows with is_aggregate=true must list
+source run names whose runs/<source>/test_eval/{metrics_test.json,predictions.jsonl} both exist.
+No synthetic runs/<aggregate_name>/ directory is required for multi-seed aggregate rows.
 
 Zip (--output-zip): includes files under the repo root that are not ignored by git check-ignore,
 excluding .git/ and explicit extra patterns (checkpoints already ignored via .gitignore).
@@ -66,7 +68,18 @@ def find_metrics_without_predictions(repo: Path) -> list[str]:
     return missing
 
 
-def runs_from_attention_variants_csv(repo: Path) -> list[str]:
+def _parse_source_run_names(cell: str) -> list[str]:
+    return [p.strip() for p in (cell or "").split(";") if p.strip()]
+
+
+def validate_csv_runs_have_metrics(repo: Path) -> list[str]:
+    """Ensure summary CSV rows have backing test_eval artifacts.
+
+    For ``is_aggregate=true`` rows, every run in ``source_run_names`` must have
+    ``test_eval/metrics_test.json`` and ``test_eval/predictions.jsonl`` (no synthetic
+    ``runs/<aggregate>/`` directory required).
+    """
+    bad: list[str] = []
     csv_path = repo / "results" / "attention_variants_test_summary.csv"
     if not csv_path.is_file():
         print(
@@ -74,24 +87,34 @@ def runs_from_attention_variants_csv(repo: Path) -> list[str]:
             file=sys.stderr,
         )
         return []
-    runs: list[str] = []
     with csv_path.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         if reader.fieldnames is None or "run" not in reader.fieldnames:
             return []
+        has_agg = "is_aggregate" in reader.fieldnames
         for row in reader:
-            r = (row.get("run") or "").strip()
-            if r:
-                runs.append(r)
-    return runs
-
-
-def validate_csv_runs_have_metrics(repo: Path) -> list[str]:
-    bad: list[str] = []
-    for run in runs_from_attention_variants_csv(repo):
-        m = repo / "runs" / run / "test_eval" / "metrics_test.json"
-        if not m.is_file():
-            bad.append(str(m.relative_to(repo)))
+            run = (row.get("run") or "").strip()
+            if not run:
+                continue
+            if has_agg and (row.get("is_aggregate") or "").strip().lower() == "true":
+                sources = _parse_source_run_names(row.get("source_run_names") or "")
+                if not sources:
+                    bad.append(
+                        f"results/attention_variants_test_summary.csv row {run}: "
+                        "is_aggregate=true but empty source_run_names"
+                    )
+                    continue
+                for sr in sources:
+                    m = repo / "runs" / sr / "test_eval" / "metrics_test.json"
+                    p = repo / "runs" / sr / "test_eval" / "predictions.jsonl"
+                    if not m.is_file():
+                        bad.append(str(m.relative_to(repo)))
+                    if not p.is_file():
+                        bad.append(str(p.relative_to(repo)))
+            else:
+                m = repo / "runs" / run / "test_eval" / "metrics_test.json"
+                if not m.is_file():
+                    bad.append(str(m.relative_to(repo)))
     return bad
 
 
@@ -114,8 +137,9 @@ def validate(
     csv_bad = validate_csv_runs_have_metrics(repo)
     if csv_bad:
         print(
-            "Runs listed in results/attention_variants_test_summary.csv "
-            "lack test_eval/metrics_test.json:",
+            "results/attention_variants_test_summary.csv: missing test_eval artifacts "
+            "(per-row: metrics_test.json; aggregate rows also require predictions.jsonl "
+            "for each source run):",
             file=sys.stderr,
         )
         for x in csv_bad:
@@ -124,11 +148,14 @@ def validate(
 
     print("prepare_code_archive: validation OK.")
     csv_path = repo / "results" / "attention_variants_test_summary.csv"
-    if csv_path.is_file() and not runs_from_attention_variants_csv(repo):
-        print(
-            "Note: results/attention_variants_test_summary.csv has no data rows in 'run' column.",
-            file=sys.stderr,
-        )
+    if csv_path.is_file():
+        with csv_path.open(newline="", encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
+        if not rows:
+            print(
+                "Note: results/attention_variants_test_summary.csv has no data rows in 'run' column.",
+                file=sys.stderr,
+            )
     return 0
 
 
