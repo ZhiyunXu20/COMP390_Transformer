@@ -1,5 +1,60 @@
 [
   {
+    "run": "_a23_fixed",
+    "status": "missing_artifacts",
+    "bleu": "-",
+    "chrf": "-",
+    "val_loss": "10.2680",
+    "empty_hyp_pct": "n/a",
+    "notes": [
+      "missing metrics.json or test_eval/metrics_test.json"
+    ]
+  },
+  {
+    "run": "_a23_fp32",
+    "status": "missing_artifacts",
+    "bleu": "-",
+    "chrf": "-",
+    "val_loss": "nan",
+    "empty_hyp_pct": "n/a",
+    "notes": [
+      "missing metrics.json or test_eval/metrics_test.json"
+    ]
+  },
+  {
+    "run": "_a23_sanity",
+    "status": "missing_artifacts",
+    "bleu": "-",
+    "chrf": "-",
+    "val_loss": "nan",
+    "empty_hyp_pct": "n/a",
+    "notes": [
+      "missing metrics.json or test_eval/metrics_test.json"
+    ]
+  },
+  {
+    "run": "_a23_sanity2",
+    "status": "missing_artifacts",
+    "bleu": "-",
+    "chrf": "-",
+    "val_loss": "nan",
+    "empty_hyp_pct": "n/a",
+    "notes": [
+      "missing metrics.json or test_eval/metrics_test.json"
+    ]
+  },
+  {
+    "run": "_a23_sanity_fp32",
+    "status": "missing_artifacts",
+    "bleu": "-",
+    "chrf": "-",
+    "val_loss": "nan",
+    "empty_hyp_pct": "n/a",
+    "notes": [
+      "missing metrics.json or test_eval/metrics_test.json"
+    ]
+  },
+  {
     "run": "fast_add",
     "status": "ok",
     "bleu": "8.16",
@@ -279,6 +334,26 @@
     "notes": [
       "final_val_loss is NaN or non-finite",
       "also failed_empty_outputs: test BLEU=0 and chrF=0"
+    ]
+  },
+  {
+    "run": "var_local_window_a23_retrain",
+    "status": "ok",
+    "bleu": "16.82",
+    "chrf": "38.37",
+    "val_loss": "3.1218",
+    "empty_hyp_pct": "0.0",
+    "notes": []
+  },
+  {
+    "run": "var_local_window_a23_retrain.partial.20260507_002034",
+    "status": "missing_artifacts",
+    "bleu": "-",
+    "chrf": "-",
+    "val_loss": "3.1218",
+    "empty_hyp_pct": "n/a",
+    "notes": [
+      "missing metrics.json or test_eval/metrics_test.json"
     ]
   },
   {

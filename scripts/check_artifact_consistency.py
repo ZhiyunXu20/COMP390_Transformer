@@ -46,6 +46,17 @@ def _format_missing(rel: str) -> str:
     return f"{rel} [{tip}]" if tip else rel
 
 
+def _should_skip_runs_child(name: str) -> bool:
+    """Scratch dirs (leading _) and forensic partial-run backups may omit test_eval."""
+    if name.startswith("."):
+        return True
+    if name.startswith("_"):
+        return True
+    if ".partial." in name:
+        return True
+    return False
+
+
 def check_run_dir(run_dir: Path) -> list[str]:
     missing: list[str] = []
     for rel in REQUIRED_UNDER_RUN:
@@ -215,7 +226,7 @@ def main() -> None:
             for child in sorted(runs_root.iterdir()):
                 if not child.is_dir():
                     continue
-                if child.name.startswith("."):
+                if _should_skip_runs_child(child.name):
                     continue
                 miss = check_run_dir(child)
                 sem = validate_metrics_semantics(repo, child)

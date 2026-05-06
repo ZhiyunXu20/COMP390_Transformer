@@ -4,6 +4,11 @@
 
 | run | status | BLEU | chrF | val_loss | empty_hyp_pct | notes |
 |-----|--------|------|------|----------|---------------|-------|
+| _a23_fixed | missing_artifacts | - | - | 10.2680 | n/a | missing metrics.json or test_eval/metrics_test.json |
+| _a23_fp32 | missing_artifacts | - | - | nan | n/a | missing metrics.json or test_eval/metrics_test.json |
+| _a23_sanity | missing_artifacts | - | - | nan | n/a | missing metrics.json or test_eval/metrics_test.json |
+| _a23_sanity2 | missing_artifacts | - | - | nan | n/a | missing metrics.json or test_eval/metrics_test.json |
+| _a23_sanity_fp32 | missing_artifacts | - | - | nan | n/a | missing metrics.json or test_eval/metrics_test.json |
 | fast_add | ok | 8.16 | 26.13 | 3.7453 | 0.0 |  |
 | fast_add_lr3e3_s1 | ok | 21.88 | 45.09 | 2.7883 | 0.0 |  |
 | fast_add_lr3e3_s2 | ok | 21.72 | 44.79 | 2.7700 | 0.0 |  |
@@ -35,12 +40,54 @@
 | var_gated_dot_additive_s3 | ok | 15.79 | 37.87 | 3.2776 | 0.0 |  |
 | var_global_local | ok | 7.30 | 24.12 | 3.9100 | 0.0 |  |
 | var_local_window | failed_nan | 0.00 | 0.00 | nan | 100.0 | final_val_loss is NaN or non-finite also failed_empty_outputs: test BLEU=0 and chrF=0 |
+| var_local_window_a23_retrain | ok | 16.82 | 38.37 | 3.1218 | 0.0 |  |
+| var_local_window_a23_retrain.partial.20260507_002034 | missing_artifacts | - | - | 3.1218 | n/a | missing metrics.json or test_eval/metrics_test.json |
 | var_local_window_fp32 | failed_nan | 0.00 | 0.00 | nan | 100.0 | final_val_loss is NaN or non-finite also failed_empty_outputs: test BLEU=0 and chrF=0 |
 | var_local_window_lr1e4 | failed_nan | 0.00 | 0.00 | nan | 100.0 | final_val_loss is NaN or non-finite also failed_empty_outputs: test BLEU=0 and chrF=0 |
 | var_local_window_window16 | failed_nan | 0.00 | 0.00 | nan | 100.0 | final_val_loss is NaN or non-finite also failed_empty_outputs: test BLEU=0 and chrF=0 |
 | var_sparsemax | ok | 7.65 | 26.54 | 3.8158 | 0.0 |  |
 
 ## Detailed findings (non-ok runs)
+
+### `_a23_fixed` — missing_artifacts
+
+- Test BLEU / chrF: - / -
+- Training final_val_loss (metrics.json): 10.2680
+- Empty-hypothesis rate (%): n/a
+- Notes:
+  - missing metrics.json or test_eval/metrics_test.json
+
+### `_a23_fp32` — missing_artifacts
+
+- Test BLEU / chrF: - / -
+- Training final_val_loss (metrics.json): nan
+- Empty-hypothesis rate (%): n/a
+- Notes:
+  - missing metrics.json or test_eval/metrics_test.json
+
+### `_a23_sanity` — missing_artifacts
+
+- Test BLEU / chrF: - / -
+- Training final_val_loss (metrics.json): nan
+- Empty-hypothesis rate (%): n/a
+- Notes:
+  - missing metrics.json or test_eval/metrics_test.json
+
+### `_a23_sanity2` — missing_artifacts
+
+- Test BLEU / chrF: - / -
+- Training final_val_loss (metrics.json): nan
+- Empty-hypothesis rate (%): n/a
+- Notes:
+  - missing metrics.json or test_eval/metrics_test.json
+
+### `_a23_sanity_fp32` — missing_artifacts
+
+- Test BLEU / chrF: - / -
+- Training final_val_loss (metrics.json): nan
+- Empty-hypothesis rate (%): n/a
+- Notes:
+  - missing metrics.json or test_eval/metrics_test.json
 
 ### `lr_sweep_add_lr1e4` — warning_low_quality
 
@@ -56,6 +103,14 @@
 - Notes:
   - final_val_loss is NaN or non-finite
   - also failed_empty_outputs: test BLEU=0 and chrF=0
+
+### `var_local_window_a23_retrain.partial.20260507_002034` — missing_artifacts
+
+- Test BLEU / chrF: - / -
+- Training final_val_loss (metrics.json): 3.1218
+- Empty-hypothesis rate (%): n/a
+- Notes:
+  - missing metrics.json or test_eval/metrics_test.json
 
 ### `var_local_window_fp32` — failed_nan
 

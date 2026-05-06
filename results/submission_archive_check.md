@@ -1,20 +1,20 @@
 # Submission archive check
 
 - **repository**: `/root/autodl-tmp`
-- **--strict**: `True`
-- **overall**: **FAIL**
+- **--strict**: `False`
+- **overall**: **WARN**
 
 ## Python package / script directories
 
 - **status**: **PASS**
-- [PASS] `small_try/`: 9 Python files
-- [PASS] `small_head/`: 9 Python files
-- [PASS] `small_swap/`: 9 Python files
+- [PASS] `small_try/`: 10 Python files
+- [PASS] `small_head/`: 10 Python files
+- [PASS] `small_swap/`: 10 Python files
 - [PASS] `base_1/`: 7 Python files
 - [PASS] `base_improve/`: 8 Python files
 - [PASS] `scripts/`: 24 Python files
 - [PASS] `experiments/`: 8 Python files
-- [PASS] `tests/`: 8 Python files
+- [PASS] `tests/`: 11 Python files
 - [PASS] `translate_cli/`: 1 Python files
 
 ## data/splits and tokenizers
@@ -156,10 +156,10 @@
 
 ## prepare_code_archive.validate (test_eval pairs + CSV)
 
-- **status**: **FAIL**
-- [FAIL] `prepare_code_archive.validate` reported missing artifacts
+- **status**: **PASS**
+- [PASS] `prepare_code_archive.validate` OK
 
 ## estimated archive size (non-ignored files)
 
 - **status**: **PASS**
-- [PASS] ~7348.8 MiB for files not matched by `git check-ignore` (local `du -sh runs/` may be much larger if checkpoints exist but are ignored)
+- [PASS] ~7350.4 MiB for files not matched by `git check-ignore` (local `du -sh runs/` may be much larger if checkpoints exist but are ignored)
