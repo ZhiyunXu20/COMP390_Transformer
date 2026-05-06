@@ -37,10 +37,10 @@
 | `gated_dot_additive` | 探索性门控混合打分；`var_gated_dot_additive` |
 | `sparsemax` | 归一化改为 sparsemax（稠密分数矩阵上）；`var_sparsemax` |
 | `entmax15` | 归一化为 entmax α=1.5（稠密分数矩阵上）；`var_entmax15` |
-| `local_window` | **稠密**结构掩码；本 archive 中 **`var_local_window`** 训练数值失败（NaN），见 **`results/runs_sanity_report.md`** |
+| `local_window` | **稠密**结构掩码；本 archive 中 **`var_local_window`** 训练数值失败（NaN），见 **`results/runs_sanity_report.md`** 与 **A15** Readout **`results/local_window_stability_report.md`**（fp32 / 降 lr / 加宽窗口仍 NaN，**非**仅 bf16） |
 | `global_local` | **稠密**结构掩码；`var_global_local` |
 
-Exploratory variants are reported as preliminary single-seed evidence, not as statistically ranked alternatives. The 7.6 BLEU dot-vs-additive gap is supported by 3-seed evidence (Welch t-test); single-seed variant comparisons are not statistically tested.
+Exploratory variants are reported with different statistical strength: **`bilinear`**, **`gated_dot_additive`**, and **`entmax15`** may be re-run as **3-seed** jobs (`experiments/run_variant_multiseed.py`, **`results/variant_multiseed_summary.md`**). The dominant **7.6 BLEU** dot-vs-additive gap remains **3-seed / Welch**-supported; other **`var_*`** rows are still mostly **single-seed** unless the multi-seed readout explicitly includes them.
 
 汇总 **仅读 test_eval** 的表格可由 **`scripts/summarize_attention_variants.py`** 生成（`results/attention_variants_test_summary.*`）。
 
@@ -53,16 +53,16 @@ Exploratory variants are reported as preliminary single-seed evidence, not as st
 - **不要**声称实现了 **CV 意义上的 spatial / channel attention**；对象为序列 token 注意力。
 - **不要**将 **`runs/<run>/metrics.json`** 中的 **`final_bleu`** 等直接当作 **test 集最终结果** 报道；默认 **`eval_split=val`** 时其为 **验证集**语义（见 **`docs/RESEARCH_AUDIT.md`** §4）。Test 报告须基于 **`evaluate_test.py`** → **`test_eval/metrics_test.json`** 或等价独立 test 流水线。
 - **不要**引用历史口径下的 **BLEU 66/76** 一类极高数值 **除非**：明确绑定 **旧协议 / 旧语料 / 旧预处理**，并与当前 SacreBLEU + 本仓库划分 **分段呈现**，避免读者误认为与本文同一实验设定可比。
-- **不要**在 **仅单 seed、且 |ΔBLEU| < 1.0** 的探索性 **`var_*`** 两两对比中声称一方「显著更好」；此类对比 **未做** 多重 seed 或句子级 bootstrap 推断。
+- **不要**在 **仅单 seed、且 |ΔBLEU| < 1.0** 的探索性对比中声称一方「显著更好」，**除非**该对比属于 **`results/variant_multiseed_summary.md`** 中 **已对 `fast_dot` 做过 Welch** 的多 seed 变体（`bilinear` / `gated_dot_additive` / `entmax15`）；其余仍主要从 **单 seed `var_*`** 表格阅读的变体（如 **`sparsemax` / `local_window` / `global_local`**）不得写成已确立排序。
 - **不要**将 **additive** 表述为 **「本质上劣于 dot-product」**：在当前证据下只能表述为 **在固定 50k 子集、bf16 训练栈、匹配超参的 EN→FR 设定下**，additive 的 held-out test 指标 **系统性地低于** dot baseline；跨任务/规模的推广需另证。
 - **不要**把 **仅 cross-seed Welch** 或 **仅句子级 bootstrap** 之一说成已穷尽所有不确定性；**dot vs additive** 主结论应 **同时引用** `results/cross_seed_significance.*`（训练 seed 间）与 `scripts/significance_test.py` / `results/significance_fast_dot_vs_fast_add.md`（同一 test 句子上重采样）。
 - **不要**将 **dot vs additive** 的差距说成 **「纯机制 / purely mechanism-driven」** 而不同时说明：**主对比中 additive 与 dot 的核心超参已对齐**，且仓库内有 **additive 学习率扫描**（**`results/additive_lr_sweep.md`**、**`results/additive_lr_sweep.csv`**；`seed=42`、`max_steps=1500` 等设定见该 Readout）；在部分训练预算下，**仅调学习率**即可明显改变 additive 的 held-out 指标。
 
 ### Forbidden claims
 
-- Do not claim local_window mechanism failed in general; only this bf16 training run failed numerically (val_loss=NaN). The mechanism may work in fp32 or with different mask construction.
+- Do not claim **`local_window`** failed **only** because of bf16 autocast. **A15** (`results/local_window_stability_report.md`) shows **`runs/var_local_window_fp32`** with **`--no-bf16-autocast`** still diverges (NaN / BLEU=0), alongside bf16 runs at **lower lr** and **`local_window_size=16`** (1500-step probes). A **supported** engineering narrative is **encoder local-band structural masking interacting with batched key-padding** (all-masked softmax rows on padded tail queries—see report and `small_try/attention.py` / `small_try/model.py`), not “switch to fp32 and it trains” as an unqualified claim. Do not claim the **idea** of local windows is globally unviable—only that **this repository’s implementation + protocol** failed under the tested grid.
 - Do not claim true Longformer / BigBird / ETC sparse-kernel implementation. Our local_window and global_local are dense L×L attention with structural masks added to logits.
-- Do not rank bilinear vs gated_dot_additive vs fast_dot if the BLEU gap is below approximately 1.0.
+- Do not treat **`bilinear` vs `gated_dot_additive` vs `fast_dot`** as statistically ordered on **< ~1 BLEU** gaps **unless** you cite **`results/variant_multiseed_summary.md`** (3 seeds + Welch vs **`fast_dot`**). For **`sparsemax`**, **`local_window`**, and **`global_local`**, which remain **single-seed** (or failed) in this archive, keep the original “no ranking” caveat.
 - Do not directly compare swap_fr_dot BLEU with EN→FR runs as if they were the same task.
 - Do not present the main run's single-seed BLEU 16.07 as the headline number; use 15.80 ± 0.52 (n=3) instead.
 - Do not describe the dot–additive gap as **purely mechanism-driven** without also noting **`fast_add` matched core hyperparameters to `fast_dot`** and pointing to the **additive LR sweep** (**`results/additive_lr_sweep.md`**, **`results/additive_lr_sweep.csv`**; see that Readout for `seed=42`, `max_steps=1500`, and eval-light protocol). Under shorter budgets, **learning-rate alone** can move additive test metrics materially.
@@ -82,7 +82,7 @@ Exploratory variants are reported as preliminary single-seed evidence, not as st
 
 2. **Sentence-level paired bootstrap（单模型 test 抽样变异）**：对 **主 run**（如 `runs/fast_dot` vs `runs/fast_add`）的 **`test_eval/predictions.jsonl`** 做 **配对重采样**（**`scripts/significance_test.py`**，报告示例 **`results/significance_fast_dot_vs_fast_add.md`**）。当前快照：**ΔBLEU ≈ +7.90**，bootstrap **95% CI ≈ [7.50, 8.33]**（与脚本输出一致为准）。
 
-**单 seed 的 `var_*` 探索性变体之间的优劣**：仅在 `results/attention_variants_test_summary.*` 中 **描述性** 呈现；**未** 与 dot/add 一样做 cross-seed 或成对 bootstrap **推断检验**，不得在正文中写成已广泛显著或普适排序结论。
+**单 seed 的 `var_*` 探索性变体之间的优劣**：对 **尚未** 纳入 **`results/variant_multiseed_summary.md`** 的变体，仅在 `results/attention_variants_test_summary.*` 中 **描述性** 呈现。 **`bilinear` / `gated_dot_additive` / `entmax15`** 在完成 **A14 多 seed** 后，可按该 Readout 中的 **Welch** 结果表述与 **`fast_dot`** 的差异；不得与 dot/add 主结论的 **双轨** 统计混为一谈。
 
 ---
 

@@ -1,0 +1,14 @@
+{
+  "determinism": {
+    "deterministic_requested": false,
+    "cudnn_benchmark": true,
+    "cudnn_deterministic": false,
+    "use_deterministic_algorithms": false,
+    "torch_version": "2.7.0+cu128"
+  },
+  "wall_time_seconds": 8972.8993980214,
+  "num_parameters": 30442800,
+  "peak_gpu_memory_bytes": 10881949696,
+  "peak_gpu_memory_mib": 10377.8359375,
+  "run_directory": "/root/autodl-tmp/runs/var_entmax15_s2"
+}

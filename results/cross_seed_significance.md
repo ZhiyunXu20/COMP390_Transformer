@@ -42,4 +42,4 @@ This is cross-**SEED** evidence using per-seed **final test** BLEU / chrF++ / CO
 | chrF++ | 10.3534 | [7.617, 13.09] | 12.6307 | 2.7682 | 0.001575 |
 | COMET | 0.0547061 | [0.03904, 0.07038] | 11.7267 | 2.74149 | 0.002014 |
 
-SciPy unavailable (import failed); using **mpmath** Student-t CDF (regularized incomplete beta) and bisection for `ppf`.
+Two-sided p-values and 95% CIs: **SciPy** `scipy.stats.t`.

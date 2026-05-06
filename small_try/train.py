@@ -18,7 +18,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from config import Config
-from attention_plots import figure_cross_attention_heads, figure_cross_attention_mean
 from dataset import TabParallelDataset, collate_batch, load_tokenizers, tokenizer_special_ids
 from model import Seq2SeqTransformer, build_logits_shifted_loss
 
@@ -66,6 +65,8 @@ def validation_loss(
     pad_idx: int,
     device: torch.device,
     desc: str = "val",
+    *,
+    use_bf16_autocast: bool = True,
 ) -> float:
     ce_sum = nn.CrossEntropyLoss(ignore_index=pad_idx, reduction="sum")
     model.eval()
@@ -74,7 +75,8 @@ def validation_loss(
         src = src.to(device, non_blocking=True)
         tgt = tgt.to(device, non_blocking=True)
         tgt_in = tgt[:, :-1]
-        with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
+        use_auto = device.type == "cuda" and use_bf16_autocast
+        with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_auto):
             logits = model(src, tgt_in)
             logits, labels = build_logits_shifted_loss(logits, tgt)
             loss_sum = ce_sum(logits, labels)
@@ -156,6 +158,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="仅 BLEU/chrF++，跳过 BERTScore/COMET（无网或快速试跑）",
     )
+    p.add_argument(
+        "--no-bf16-autocast",
+        action="store_true",
+        help="CUDA 上禁用 bf16 autocast，以 fp32 训练/校验前向（数值诊断用）",
+    )
     return p.parse_args()
 
 
@@ -167,6 +174,8 @@ def main():
     if args.eval_light:
         cfg.eval_use_bertscore = False
         cfg.eval_use_comet = False
+    if args.no_bf16_autocast:
+        cfg.use_bf16_autocast = False
     apply_shared_cli_to_config(cfg, args)
     if args.epochs is not None:
         cfg.epochs = args.epochs
@@ -265,7 +274,7 @@ def main():
     )
     scheduler = LambdaLR(optimizer, lr_lambda=get_warmup_lambda(cfg))
 
-    scaler_enabled = device.type == "cuda"
+    use_bf16_autocast = device.type == "cuda" and getattr(cfg, "use_bf16_autocast", True)
     global_step = 0
     optimizer_step = 0
     best_bleu = -1.0
@@ -280,7 +289,7 @@ def main():
             tgt = tgt.to(device, non_blocking=True)
             tgt_in = tgt[:, :-1]
 
-            with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=scaler_enabled):
+            with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_bf16_autocast):
                 logits = model(src, tgt_in)
                 logits_flat, labels = build_logits_shifted_loss(logits, tgt)
                 loss = criterion(logits_flat, labels) / cfg.grad_accum_steps
@@ -297,7 +306,13 @@ def main():
                 accum = 0
 
                 if optimizer_step % cfg.val_every == 0:
-                    vloss = validation_loss(model, eval_loader, pad_idx, device)
+                    vloss = validation_loss(
+                        model,
+                        eval_loader,
+                        pad_idx,
+                        device,
+                        use_bf16_autocast=getattr(cfg, "use_bf16_autocast", True),
+                    )
                     bleu_diag: dict = {}
                     bleu, extra_m = evaluate_generation_corpus(
                         model,
@@ -382,12 +397,17 @@ def main():
                 try:
                     with torch.no_grad():
                         with torch.amp.autocast(
-                            "cuda", dtype=torch.bfloat16, enabled=scaler_enabled
+                            "cuda", dtype=torch.bfloat16, enabled=use_bf16_autocast
                         ):
                             _, att_dict = model(
                                 src[:1], tgt_in[:1], output_attentions=True
                             )
                         cross_h = att_dict["decoder_cross"][li][0].float().cpu()
+                    from attention_plots import (
+                        figure_cross_attention_heads,
+                        figure_cross_attention_mean,
+                    )
+
                     fig_h = figure_cross_attention_heads(
                         cross_h,
                         src[0].tolist(),
@@ -446,7 +466,14 @@ def main():
     )
 
     print("最终评估（用于报告）…")
-    final_vloss = validation_loss(model, eval_loader, pad_idx, device, desc="final_val")
+    final_vloss = validation_loss(
+        model,
+        eval_loader,
+        pad_idx,
+        device,
+        desc="final_val",
+        use_bf16_autocast=getattr(cfg, "use_bf16_autocast", True),
+    )
     final_bleu_diag: dict = {}
     predictions_val_sample = out / "predictions_val_sample.jsonl"
     final_bleu, final_extra = evaluate_generation_corpus(

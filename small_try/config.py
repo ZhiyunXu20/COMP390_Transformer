@@ -100,3 +100,6 @@ class Config:
     eval_bertscore_device: str = "cpu"
     eval_comet_gpus: int = 0
     eval_comet_model: str = "Unbabel/wmt22-comet-da"
+
+    # CUDA 上默认 bf16 autocast；诊断实验可关闭（fp32 训练）
+    use_bf16_autocast: bool = True

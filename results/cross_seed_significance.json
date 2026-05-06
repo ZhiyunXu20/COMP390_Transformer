@@ -2,8 +2,8 @@
   "experiment_a": "fast_dot",
   "experiment_b": "fast_add",
   "csv": "/root/autodl-tmp/results/ablation_per_seed.csv",
-  "scipy_available": false,
-  "stats_backend": "mpmath",
+  "scipy_available": true,
+  "stats_backend": "scipy",
   "metrics": {
     "BLEU": {
       "metric": "BLEU",
@@ -30,9 +30,9 @@
       "mean_difference_a_minus_b": 7.5973297470826395,
       "welch_t": 15.118899872486416,
       "welch_df": 3.7106359132449986,
-      "ci_95_low": 6.158177101604103,
-      "ci_95_high": 9.036482392561176,
-      "p_value_two_sided": 0.00018084852915922767,
+      "ci_95_low": 6.1581771016040925,
+      "ci_95_high": 9.036482392561187,
+      "p_value_two_sided": 0.00018084852915913906,
       "conclusion": "fast_dot is significantly better than fast_add at α=0.05 (two-sided)."
     },
     "chrF++": {
@@ -60,9 +60,9 @@
       "mean_difference_a_minus_b": 10.353438438864693,
       "welch_t": 12.630705037950026,
       "welch_df": 2.768203520205605,
-      "ci_95_low": 7.6167388595975964,
-      "ci_95_high": 13.090138018131789,
-      "p_value_two_sided": 0.0015749496845001154,
+      "ci_95_low": 7.616738859596067,
+      "ci_95_high": 13.090138018133318,
+      "p_value_two_sided": 0.0015749496845002173,
       "conclusion": "fast_dot is significantly better than fast_add at α=0.05 (two-sided)."
     },
     "COMET": {
@@ -90,9 +90,9 @@
       "mean_difference_a_minus_b": 0.05470612618923182,
       "welch_t": 11.726713110967653,
       "welch_df": 2.7414937613426327,
-      "ci_95_low": 0.0390354772709796,
-      "ci_95_high": 0.07037677510748404,
-      "p_value_two_sided": 0.002014033363066936,
+      "ci_95_low": 0.039035477270969544,
+      "ci_95_high": 0.0703767751074941,
+      "p_value_two_sided": 0.00201403336306684,
       "conclusion": "fast_dot is significantly better than fast_add at α=0.05 (two-sided)."
     }
   }

@@ -204,6 +204,13 @@ def register_shared_cli_arguments(p: Any) -> None:
         help="优化器学习率（默认使用各 pkg Config）",
     )
     p.add_argument("--max-steps", type=int, default=None)
+    p.add_argument(
+        "--local-window-size",
+        type=int,
+        default=None,
+        dest="local_window_size",
+        help="local_window / 相关结构掩码的窗口半宽（覆盖 Config.local_window_size）",
+    )
     p.add_argument("--batch-size", type=int, default=None, dest="batch_size")
     p.add_argument("--bleu-sample-size", type=int, default=None)
     p.add_argument(
@@ -256,6 +263,8 @@ def apply_shared_cli_to_config(cfg: Any, args: Any) -> None:
         cfg.learning_rate = float(args.learning_rate)
     if getattr(args, "max_steps", None) is not None:
         cfg.max_steps = args.max_steps
+    if getattr(args, "local_window_size", None) is not None:
+        cfg.local_window_size = int(args.local_window_size)
     if getattr(args, "batch_size", None) is not None:
         cfg.batch_size = args.batch_size
     if getattr(args, "bleu_sample_size", None) is not None:

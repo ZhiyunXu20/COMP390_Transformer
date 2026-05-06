@@ -13,7 +13,7 @@
 - [PASS] `base_1/`: 7 Python files
 - [PASS] `base_improve/`: 8 Python files
 - [PASS] `scripts/`: 23 Python files
-- [PASS] `experiments/`: 3 Python files
+- [PASS] `experiments/`: 6 Python files
 - [PASS] `tests/`: 7 Python files
 - [PASS] `translate_cli/`: 1 Python files
 
@@ -138,14 +138,14 @@
 - [WARN] `.log` (consider omitting): `logs/run_all_small_training_20260429_100558.log`
 - [WARN] `.log` (consider omitting): `logs/run_all_small_training_20260429_105557.log`
 - [WARN] `.log` (consider omitting): `logs/variants_run.log`
-- [WARN] `.log` (consider omitting): `results/fast_add_resume.log`
-- [WARN] `.log` (consider omitting): `results/fast_add_train_eval.log`
-- [WARN] `.log` (consider omitting): `small_head/tea_debug.log`
-- [WARN] `.log` (consider omitting): `small_swap/tea_debug.log`
-- [WARN] `.log` (consider omitting): `small_try/tea_debug.log`
-- [WARN] `.log` (consider omitting): `wandb_cache_attention_small/wandb/debug-internal.log`
-- [WARN] `.log` (consider omitting): `wandb_cache_attention_small/wandb/debug.log`
-- [WARN] `.log` (consider omitting): `wandb_cache_attention_small/wandb/run-20260429_100607-w1e1wtda/files/output.log`
+- [WARN] `.log` (consider omitting): `logs/lr_sweep_resume.log`
+- [WARN] `.log` (consider omitting): `logs/variant_multiseed_a14.log`
+- [WARN] `.log` (consider omitting): `logs/a15_fp32_train.log`
+- [WARN] `.log` (consider omitting): `logs/a15_lr1e4_train.log`
+- [WARN] `.log` (consider omitting): `logs/a15_window16_train.log`
+- [WARN] `.log` (consider omitting): `logs/a15_var_local_window_fp32_eval.log`
+- [WARN] `.log` (consider omitting): `logs/a15_var_local_window_lr1e4_eval.log`
+- [WARN] `.log` (consider omitting): `logs/a15_var_local_window_window16_eval.log`
 - [WARN] (suppressing further `.log` listings)
 
 ## prepare_code_archive.validate (test_eval pairs + CSV)
@@ -156,4 +156,4 @@
 ## estimated archive size (non-ignored files)
 
 - **status**: **PASS**
-- [PASS] ~50.3 MiB for files not matched by `git check-ignore` (local `du -sh runs/` may be much larger if checkpoints exist but are ignored)
+- [PASS] ~73.5 MiB for files not matched by `git check-ignore` (local `du -sh runs/` may be much larger if checkpoints exist but are ignored)
