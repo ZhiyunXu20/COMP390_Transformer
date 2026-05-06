@@ -27,6 +27,24 @@
 
 ---
 
+## Data split overlap (source/target level)
+
+DCEP 语料划分（**`data/splits/en_fr_50k_seed42/`**）在 **(source, target) 句对** 层面去重。对实际 **`.tsv`** 文件度量：
+
+- **句对级**：train / val / test 之间 **完全相同的 (source, target) 对**：**0**（去重正确）。
+- **源串重叠**：**8** 条源字符串同时出现在 train 与 test；**10** 条同时出现在 train 与 val。
+- **目标串重叠**：**9** 条目标字符串同时出现在 train 与 test。
+- **源 → 多译（1-to-many）**：**109** 条源字符串对应 **多于一个** 不同的目标译文。
+- **目标 → 多源**：**106** 条目标字符串对应 **多个** 不同的源句（对齐噪声）。
+
+**含义**：对 test 中与其在 train 中出现过的 **源串完全相同** 的 **8** 条情形，模型在训练阶段见过该源表面形式，可能复现其记忆到的译文，从而 **轻微抬高** test BLEU，与「严格意义上的 test 泛化」相比。**占比很小**（约占 test **~0.3%**），但应在 **Threats to validity** 中承认。
+
+- **Forbidden claim**：*"Held-out test BLEU is unaffected by training data."*
+
+- **Required Threats to Validity wording**（可在 Limitations / Threats 中直接使用英文）：*Although pair-level deduplication ensures no exact (source, target) pair appears in both train and test, 8 source strings (~0.3% of test) appear in both splits, and the corpus contains 109 source-strings with multiple targets and 106 target-strings with multiple sources, reflecting alignment noise in DCEP. We did not filter cross-split source/target overlaps, and held-out test BLEU may be slightly inflated.*
+
+---
+
 ## 2. Exploratory single-seed results（探索性单-seed 结果）
 
 以下 **`attention_type`** 在 **`small_try`** 等路径中**已实现**，并以 **`runs/var_*`** 等形式完成了训练与 held-out test 终评。**主汇总表**为 **`results/attention_variants_test_summary.md`**（A18：在存在 **`results/ablation_per_seed.csv`** 时，`scripts/summarize_attention_variants.py --multiseed-csv` 将 **`fast_dot` / `fast_add` / `fast_add_lr3e3`（A19，匹配 dot 的 `lr=3e-3`）/ A14 多 seed 变体** 的 test 指标合并为 **mean ± std (n=3)**，并给出 **Welch *p* vs `fast_dot` (BLEU)**；**`sparsemax` / `local_window` / `global_local`** 等仍以 **单 seed** 呈现于该表）。完整 Welch 叙事（Δ、95% CI、*t*、df，逐指标）见 **`results/variant_multiseed_summary.md`**；**A19** 与 **`fast_dot`** 的专门对照另见 **`results/cross_seed_significance_lr3e3.{md,json}`**。
