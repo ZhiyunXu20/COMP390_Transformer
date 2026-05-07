@@ -9,9 +9,30 @@ Different runs in this archive were trained at different commits with `git_dirty
 ## How to verify the archive
 
 ```bash
+# 1) Install pinned dependencies first.
+python -m pip install -r requirements.txt
+
+# 2) Strict archive integrity check.
 python scripts/check_submission_archive.py --strict
+
+# 3) Full pytest suite.
 python -m pytest -q
+
+# 4) Re-run all 36 runs sanity scan.
 python scripts/sanity_check_runs.py
+
+# 5) (Optional) Quick-check without heavy metric dependencies — if you want
+# to verify schema/provenance without installing sacrebleu/COMET/BERTScore:
+python -m pip install pytest mpmath
+python -m pytest -q tests/test_data_integrity.py \
+                    tests/test_data_split_overlap_audit.py \
+                    tests/test_summary_provenance.py \
+                    tests/test_summary_aggregate_metrics.py \
+                    tests/test_attention_all_masked.py \
+                    tests/test_import_isolation.py \
+                    tests/test_metrics_json_bleu_fields.py \
+                    tests/test_ablation_lib_eval_semantics.py \
+                    tests/test_entmax15_backend_semantics.py
 ```
 
 `check_submission_archive.py` 会写出 **`results/submission_archive_check.md`**；`--no-strict` 时仅作报告不因缺项退出 1。可选用 **`--max-archive-size-mib N`** 对「拟打包的非 gitignore 文件总体积」做 WARN。
