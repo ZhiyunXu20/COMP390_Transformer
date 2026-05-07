@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """Audit `/root/autodl-tmp` string occurrences; ensure they are only documented provenance.
 
-Uses **`git grep`** so only **tracked** files are considered (local `logs/`, backups,
-wandb caches, etc. are ignored if untracked or gitignored).
+With **`.git`**: uses **`git grep`** so only **tracked** files are considered (local `logs/`,
+backups, wandb caches, etc. are ignored if untracked or gitignored).
 
-Exit 0: all tracked hits are allowlisted; `small_try` / `small_head` / `small_swap`
+**Without `.git`** (e.g. zip extract): recursive **filesystem scan** with directory excludes;
+allowlist rules are unchanged.
+
+Exit 0: all hits are allowlisted; `small_try` / `small_head` / `small_swap`
 `config.py` contain no needle.
-Exit 1: unexpected tracked file contains the needle, or main `config.py` embeds it.
+Exit 1: unexpected file contains the needle, or main `config.py` embeds it.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -32,6 +36,33 @@ MAIN_CONFIG_RELPATHS: tuple[str, ...] = (
     "small_try/config.py",
     "small_head/config.py",
     "small_swap/config.py",
+)
+
+_FS_EXCLUDES: frozenset[str] = frozenset(
+    {
+        "__pycache__",
+        ".pytest_cache",
+        "venv",
+        ".venv",
+        "node_modules",
+        "wandb",
+        "logs",
+        "runs",
+        ".git",
+    }
+)
+
+_FS_SKIP_SUFFIXES: tuple[str, ...] = (
+    ".pt",
+    ".bin",
+    ".safetensors",
+    ".npy",
+    ".npz",
+    ".gz",
+    ".zip",
+    ".tar",
+    ".jpg",
+    ".png",
 )
 
 
@@ -55,16 +86,50 @@ def file_contains_needle(path: Path) -> bool:
     return NEEDLE in text
 
 
-def tracked_files_with_needle(repo: Path) -> list[str]:
-    cp = subprocess.run(
-        ["git", "-C", str(repo), "grep", "-l", "--fixed-strings", NEEDLE],
+def _git_grep_paths(repo: Path, pattern: str) -> list[str]:
+    """Use git grep when `.git` is present (tracked files only)."""
+    result = subprocess.run(
+        ["git", "grep", "-l", "--fixed-strings", pattern],
+        cwd=str(repo),
         capture_output=True,
         text=True,
     )
-    if cp.returncode not in (0, 1):
-        print(cp.stderr or cp.stdout, file=sys.stderr)
-        raise SystemExit(2)
-    return sorted({ln.strip() for ln in cp.stdout.splitlines() if ln.strip()})
+    if result.returncode not in (0, 1):
+        msg = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(f"git grep failed ({result.returncode}): {msg}")
+    if not result.stdout.strip():
+        return []
+    return sorted({ln.strip() for ln in result.stdout.splitlines() if ln.strip()})
+
+
+def _fs_grep_paths(
+    repo: Path,
+    pattern: str,
+    *,
+    excludes: frozenset[str] = _FS_EXCLUDES,
+) -> list[str]:
+    """Recursive file scan when `.git` is absent."""
+    hits: list[str] = []
+    repo = repo.resolve()
+    for root, dirs, files in os.walk(repo, topdown=True):
+        dirs[:] = [d for d in dirs if d not in excludes]
+        for f in files:
+            if f.endswith(_FS_SKIP_SUFFIXES):
+                continue
+            p = Path(root) / f
+            try:
+                if p.stat().st_size > 10_000_000:
+                    continue
+                text = p.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            if pattern in text:
+                try:
+                    rel = p.relative_to(repo).as_posix()
+                except ValueError:
+                    continue
+                hits.append(rel)
+    return sorted(set(hits))
 
 
 def is_allowlisted_tracked(rel_posix: str) -> bool:
@@ -93,6 +158,7 @@ def is_allowlisted_tracked(rel_posix: str) -> bool:
 
 
 def check_main_configs_clean(repo: Path) -> list[str]:
+    """Critical check: active small_* config defaults must not embed the training-host path."""
     bad: list[str] = []
     for rel_s in MAIN_CONFIG_RELPATHS:
         p = repo / rel_s
@@ -103,8 +169,7 @@ def check_main_configs_clean(repo: Path) -> list[str]:
     return bad
 
 
-def audit_tracked(repo: Path) -> tuple[list[str], list[str]]:
-    hits = tracked_files_with_needle(repo)
+def partition_hits(hits: list[str]) -> tuple[list[str], list[str]]:
     allow: list[str] = []
     bad: list[str] = []
     for h in hits:
@@ -112,22 +177,33 @@ def audit_tracked(repo: Path) -> tuple[list[str], list[str]]:
             allow.append(h)
         else:
             bad.append(h)
-    return allow, bad
+    return sorted(allow), sorted(bad)
 
 
 def write_report(
     repo: Path,
     *,
+    audit_mode: str,
     allowed: list[str],
     unexpected: list[str],
     main_bad: list[str],
 ) -> Path:
     out = repo / "results" / "absolute_path_caveats_audit.md"
     out.parent.mkdir(parents=True, exist_ok=True)
+    if "git" in audit_mode.lower():
+        scope = "Tracked files only (`git grep`). See **`docs/PROVENANCE_CAVEATS.md`**."
+    else:
+        scope = (
+            "Filesystem scan (no `.git`); directory excludes match the audit script "
+            "(e.g. `runs/`, `logs/`, `wandb/`). Allowlist rules are unchanged. "
+            "See **`docs/PROVENANCE_CAVEATS.md`**."
+        )
     lines = [
         "# Absolute path caveats audit (`/root/autodl-tmp`)",
         "",
-        "Tracked files only (`git grep`). See **`docs/PROVENANCE_CAVEATS.md`**.",
+        f"**Audit mode**: {audit_mode}",
+        "",
+        scope,
         "",
         "## Main pipeline configs (`small_*`)",
         "",
@@ -140,10 +216,10 @@ def write_report(
         lines.append(
             "**PASS**: `small_try` / `small_head` / `small_swap` `config.py` contain no `/root/autodl-tmp`."
         )
-    lines.extend(["", "## Allowlisted tracked files (historical provenance)", ""])
+    lines.extend(["", "## Allowlisted files (historical provenance)", ""])
     for a in allowed:
         lines.append(f"- `{a}`")
-    lines.extend(["", "## Unexpected tracked files", ""])
+    lines.extend(["", "## Unexpected files", ""])
     if unexpected:
         for u in unexpected:
             lines.append(f"- `{u}` **← needs review or allowlist update**")
@@ -159,19 +235,29 @@ def main() -> int:
     ap.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parent.parent)
     args = ap.parse_args()
     repo = args.repo_root.resolve()
-    if not (repo / ".git").is_dir():
-        print("FAIL: not a git repository; cannot run git-grep audit", file=sys.stderr)
-        return 1
 
     main_bad = check_main_configs_clean(repo)
-    allowed, unexpected = audit_tracked(repo)
-    write_report(repo, allowed=allowed, unexpected=unexpected, main_bad=main_bad)
+
+    if (repo / ".git").is_dir():
+        try:
+            hits = _git_grep_paths(repo, NEEDLE)
+        except RuntimeError as e:
+            print(str(e), file=sys.stderr)
+            return 2
+        audit_mode = "git-grep (tracked files)"
+    else:
+        hits = _fs_grep_paths(repo, NEEDLE)
+        audit_mode = "filesystem scan (no .git available)"
+        print("INFO: .git not found; using filesystem scan fallback.", file=sys.stderr)
+
+    allowed, unexpected = partition_hits(hits)
+    write_report(repo, audit_mode=audit_mode, allowed=allowed, unexpected=unexpected, main_bad=main_bad)
 
     if main_bad:
-        print("FAIL: main small_* config embeds /root/autodl-tmp", file=sys.stderr)
+        print("FAIL: active config files contain absolute paths: " + ", ".join(main_bad), file=sys.stderr)
         return 1
     if unexpected:
-        print("FAIL: tracked file contains /root/autodl-tmp outside documented provenance", file=sys.stderr)
+        print("FAIL: file contains /root/autodl-tmp outside documented provenance", file=sys.stderr)
         for u in unexpected:
             print(f"  - {u}", file=sys.stderr)
         return 1

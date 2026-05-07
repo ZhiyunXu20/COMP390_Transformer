@@ -175,12 +175,10 @@ def run_checks(
                 c_di.add("FAIL", out[:1200])
     cats.append(c_di)
 
-    c_ap = Category("absolute path caveats (V9-A31, tracked files via git grep)")
+    c_ap = Category("absolute path caveats (git grep or filesystem fallback if no .git)")
     ap_script = repo / "scripts" / "check_absolute_path_caveats.py"
     if not ap_script.is_file():
         c_ap.add("FAIL", "missing `scripts/check_absolute_path_caveats.py`")
-    elif not (repo / ".git").is_dir():
-        c_ap.add("WARN", "not a git checkout; skipped `check_absolute_path_caveats.py`")
     else:
         cp = subprocess.run(
             [sys.executable, str(ap_script), "--repo-root", str(repo)],

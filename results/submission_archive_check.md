@@ -14,7 +14,7 @@
 - [PASS] `base_improve/`: 8 Python files
 - [PASS] `scripts/`: 26 Python files
 - [PASS] `experiments/`: 8 Python files
-- [PASS] `tests/`: 16 Python files
+- [PASS] `tests/`: 17 Python files
 - [PASS] `translate_cli/`: 1 Python files
 
 ## data/splits and tokenizers
@@ -33,7 +33,7 @@
 - **status**: **PASS**
 - [PASS] `scripts/check_data_integrity.py` OK → `results/data_integrity_report.md`
 
-## absolute path caveats (V9-A31, tracked files via git grep)
+## absolute path caveats (git grep or filesystem fallback if no .git)
 
 - **status**: **WARN**
 - [PASS] `check_absolute_path_caveats.py` OK → `results/absolute_path_caveats_audit.md`

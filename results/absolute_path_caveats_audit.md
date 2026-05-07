@@ -1,12 +1,14 @@
 # Absolute path caveats audit (`/root/autodl-tmp`)
 
+**Audit mode**: git-grep (tracked files)
+
 Tracked files only (`git grep`). See **`docs/PROVENANCE_CAVEATS.md`**.
 
 ## Main pipeline configs (`small_*`)
 
 **PASS**: `small_try` / `small_head` / `small_swap` `config.py` contain no `/root/autodl-tmp`.
 
-## Allowlisted tracked files (historical provenance)
+## Allowlisted files (historical provenance)
 
 - `base_1/config.py`
 - `base_1/tokens.py`
@@ -22,6 +24,7 @@ Tracked files only (`git grep`). See **`docs/PROVENANCE_CAVEATS.md`**.
 - `docs/V3_RELEASE_CHECKLIST.md`
 - `launch_small_training_nohup.sh`
 - `results/ablation_per_seed.csv`
+- `results/absolute_path_caveats_audit.md`
 - `results/cross_seed_significance.json`
 - `results/cross_seed_significance_lr3e3.json`
 - `results/data_integrity_report.md`
@@ -214,6 +217,6 @@ Tracked files only (`git grep`). See **`docs/PROVENANCE_CAVEATS.md`**.
 - `small_try/results/bundle_metrics.json`
 - `smoke_test_small.sh`
 
-## Unexpected tracked files
+## Unexpected files
 
 (none)
