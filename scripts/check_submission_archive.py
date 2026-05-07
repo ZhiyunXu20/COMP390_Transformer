@@ -175,6 +175,47 @@ def run_checks(
                 c_di.add("FAIL", out[:1200])
     cats.append(c_di)
 
+    c_ap = Category("absolute path caveats (V9-A31, tracked files via git grep)")
+    ap_script = repo / "scripts" / "check_absolute_path_caveats.py"
+    if not ap_script.is_file():
+        c_ap.add("FAIL", "missing `scripts/check_absolute_path_caveats.py`")
+    elif not (repo / ".git").is_dir():
+        c_ap.add("WARN", "not a git checkout; skipped `check_absolute_path_caveats.py`")
+    else:
+        cp = subprocess.run(
+            [sys.executable, str(ap_script), "--repo-root", str(repo)],
+            cwd=str(repo),
+            capture_output=True,
+            text=True,
+        )
+        if cp.returncode != 0:
+            c_ap.add(
+                "FAIL",
+                "`check_absolute_path_caveats.py` failed (see `results/absolute_path_caveats_audit.md`)",
+            )
+            err = (cp.stderr or "").strip()
+            if err:
+                c_ap.add("FAIL", err[:1200])
+        else:
+            c_ap.add(
+                "PASS",
+                "`check_absolute_path_caveats.py` OK → `results/absolute_path_caveats_audit.md`",
+            )
+            for legacy in (repo / "base_1" / "config.py", repo / "base_improve" / "config.py"):
+                if not legacy.is_file():
+                    continue
+                try:
+                    if "/root/autodl-tmp" in legacy.read_text(encoding="utf-8", errors="replace"):
+                        c_ap.add(
+                            "WARN",
+                            f"Legacy `{legacy.relative_to(repo).as_posix()}` still embeds `/root/autodl-tmp`; "
+                            "see `docs/PROVENANCE_CAVEATS.md` (main `small_*` stacks use relative paths).",
+                        )
+                        break
+                except OSError:
+                    pass
+    cats.append(c_ap)
+
     c_runs = Category("10 reported runs — test_eval + core JSON")
     for run in REPORTED_RUNS:
         rd = repo / "runs" / run

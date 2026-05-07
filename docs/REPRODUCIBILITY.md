@@ -2,6 +2,8 @@
 
 所有命令均在**仓库根目录**执行（下文记为 `$REPO`）。路径默认为相对仓库根的 POSIX 字符串；也可用绝对路径。可选环境变量：`REPO_ROOT` 或 `AUTODL_REPO_ROOT`（覆盖仓库根推断）。
 
+**历史绝对路径与 duplicate 计数口径**：见 **`docs/PROVENANCE_CAVEATS.md`**（V9-A31：`/root/autodl-tmp` 出处、`manifest.json` vs `split_metadata.json` 去重数字不可混用等）。
+
 ## Data integrity caveat（A20）
 
 **历史问题**：`data/splits/en_fr_50k_seed42/manifest.json` 中的 **`sha256` 块**曾与盘上 **`train.tsv` / `val.tsv` / `test.tsv` 的真实 SHA-256** 不一致（而外审指出 **`scripts/check_submission_archive.py --strict` 此前未拦截该问题**）。**`split_metadata.json`** 内的 **`train_file_sha256_for_tokenizers`** 自始与真实 **`train.tsv`** 一致（该字段在划分之后、词表训练步骤写入；其 **`creation_time`** 略晚于 **`manifest.json`** 的 **`creation_timestamp_utc`** 属正常流程时序）。

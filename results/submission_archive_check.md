@@ -12,9 +12,9 @@
 - [PASS] `small_swap/`: 10 Python files
 - [PASS] `base_1/`: 7 Python files
 - [PASS] `base_improve/`: 8 Python files
-- [PASS] `scripts/`: 24 Python files
+- [PASS] `scripts/`: 26 Python files
 - [PASS] `experiments/`: 8 Python files
-- [PASS] `tests/`: 12 Python files
+- [PASS] `tests/`: 16 Python files
 - [PASS] `translate_cli/`: 1 Python files
 
 ## data/splits and tokenizers
@@ -32,6 +32,12 @@
 
 - **status**: **PASS**
 - [PASS] `scripts/check_data_integrity.py` OK → `results/data_integrity_report.md`
+
+## absolute path caveats (V9-A31, tracked files via git grep)
+
+- **status**: **WARN**
+- [PASS] `check_absolute_path_caveats.py` OK → `results/absolute_path_caveats_audit.md`
+- [WARN] Legacy `base_1/config.py` still embeds `/root/autodl-tmp`; see `docs/PROVENANCE_CAVEATS.md` (main `small_*` stacks use relative paths).
 
 ## 10 reported runs — test_eval + core JSON
 
@@ -162,4 +168,4 @@
 ## estimated archive size (non-ignored files)
 
 - **status**: **PASS**
-- [PASS] ~7350.4 MiB for files not matched by `git check-ignore` (local `du -sh runs/` may be much larger if checkpoints exist but are ignored)
+- [PASS] ~7350.5 MiB for files not matched by `git check-ignore` (local `du -sh runs/` may be much larger if checkpoints exist but are ignored)
