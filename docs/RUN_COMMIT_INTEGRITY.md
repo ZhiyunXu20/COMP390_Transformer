@@ -25,7 +25,7 @@
 |-------|----------|--------------|
 | `e09f93ad44` | `e09f93ad449af26c37aa6d065004e0ed09ccb775` | **A13**：`lr_sweep_add_lr1e4` / `_lr3e4` / `_lr1e3` / `_lr3e3`（additive LR 扫描，**`max_steps=1500`**） |
 | `8a9e118647` | `8a9e11864788b908944b0b08fed17f750501d350` | **A14**：`var_bilinear_s{1,2,3}`、`var_gated_dot_additive_s{1,2,3}`、`var_entmax15_s{1,2,3}`（多 seed）；**A15**：`var_local_window_fp32`、`_lr1e4`、`_window16`（`local_window` 数值探针，**`max_steps=1500`**） |
-| `e6cd4aa7bb73` | `e6cd4aa7bb73fa3888e9c6dbb917f3b7bac2fc01` | **A19**：`fast_add_lr3e3_s{1,2,3}`（additive 与 **`fast_dot` 对齐 `lr=3e-3`**，**`max_steps=3000`**；汇总见 **`results/additive_matched_lr3e3_summary.md`**）。*该 SHA 为训练时记录；文档 HEAD 可能为其子孙 commit。* |
+| `e6cd4aa7bb73` | `e6cd4aa7bb73fa3888e9c6dbb917f3b7bac2fc01` | **A19**：`fast_add_lr3e3_s{1,2,3}`（additive 使用调优后的 **`lr=3e-3`**，dot 保持其 baseline **`lr=3e-4`**，二者使用相同的 **`max_steps=3000`** 训练预算；汇总见 **`results/additive_matched_lr3e3_summary.md`**）。*该 SHA 为训练时记录；文档 HEAD 可能为其子孙 commit。* |
 
 **`git rev-parse <commit>:small_try/attention.py` 核验**：`e09f93ad44` 与 `8a9e118647`（及 **`a750583efd`**、**上文 HEAD**）在该文件上 **blob 均为 `caa2d2c3ce25`**——相对 **Epoch-1**（`2c605436fe` / `97a3bfcb31` 上的旧 blob `19efa698384a`）仍为 **较新**，但与 **单 seed `var_*`（`a750583efd`）** **不是**又一次 attention 重写。**`small_try/train.py`**：`a750583efd` → `e09f93ad44` 有净变化（见 **§ v4 增补 diff 统计**）。**`evaluate_test.py`**：`e09f93ad44` → `8a9e118647` 有净变化。
 

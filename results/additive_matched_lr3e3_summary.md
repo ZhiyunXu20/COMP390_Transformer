@@ -1,4 +1,4 @@
-# Additive at matched LR (A19)
+# Additive at tuned higher LR (A19)
 
 ## Protocol
 

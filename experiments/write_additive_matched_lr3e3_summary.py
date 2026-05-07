@@ -30,7 +30,7 @@ def main() -> int:
     p = bleu_new["p_value_two_sided"]
 
     lines = [
-        "# Additive at matched LR (A19)",
+        "# Additive at tuned higher LR (A19)",
         "",
         "## Protocol",
         "",
