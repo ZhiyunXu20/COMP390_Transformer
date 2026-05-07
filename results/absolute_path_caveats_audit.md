@@ -216,6 +216,7 @@ Tracked files only (`git grep`). See **`docs/PROVENANCE_CAVEATS.md`**.
 - `small_swap/results/bundle_swap_metrics.json`
 - `small_try/results/bundle_metrics.json`
 - `smoke_test_small.sh`
+- `tests/test_absolute_path_audit_no_git.py`
 
 ## Unexpected files
 

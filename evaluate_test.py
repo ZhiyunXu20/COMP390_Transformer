@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import importlib.metadata
 import json
 import sys
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import torch
 from torch.utils.data import DataLoader
@@ -27,6 +29,36 @@ from mt_eval import (
     compute_extra_metrics,
     exact_match_rate,
 )
+
+
+def _try_version(pkg: str) -> str:
+    try:
+        return importlib.metadata.version(pkg)
+    except Exception:
+        return "unknown"
+
+
+def build_metric_provenance(*, sacrebleu_signature: Any, cfg: SimpleNamespace) -> dict[str, Any]:
+    """Forward-only fields for metrics_test.json (BERTScore / COMET / SacreBLEU provenance)."""
+    bertscore_lang = getattr(cfg, "eval_bertscore_lang", "fr")
+    bertscore_model_type = getattr(cfg, "eval_bertscore_model_type", None)
+    comet_model = getattr(cfg, "eval_comet_model", "Unbabel/wmt22-comet-da")
+    return {
+        "sacrebleu_signature": sacrebleu_signature,
+        "sacrebleu_version": _try_version("sacrebleu"),
+        "bertscore_lang": bertscore_lang,
+        "bertscore_model_type": bertscore_model_type,
+        "bertscore_version": _try_version("bert-score"),
+        "comet_model": comet_model,
+        "comet_version": _try_version("unbabel-comet"),
+        "comet_device": "cuda" if torch.cuda.is_available() else "cpu",
+        "_caveat": (
+            "BERTScore and COMET model identifiers are determined at "
+            "evaluation time. Historical metrics_test.json files prior "
+            "to the metric_provenance block may not have these fields; see "
+            "docs/METRIC_PROVENANCE.md for backfill semantics."
+        ),
+    }
 
 
 def resolve_under_repo(path_str: str, repo_root: Path) -> Path:
@@ -279,6 +311,8 @@ def main() -> None:
         " 空行或列数≠2 的行不进入评估，计数见 anomaly_counts_in_test_file。"
     )
 
+    metric_provenance = build_metric_provenance(sacrebleu_signature=bleu_sig, cfg=cfg)
+
     metrics: dict = {
         "BLEU": bleu,
         "chrF": extra.get("chrf"),
@@ -289,6 +323,7 @@ def main() -> None:
         "average_length_ratio": alr,
         "number_of_test_examples": len(hyps),
         "sacrebleu_signature": bleu_sig,
+        "metric_provenance": metric_provenance,
         "filtering_rules": filtering_note,
         "anomaly_counts_in_test_file": anomaly_counts,
         "checkpoint": str(ckpt_path),

@@ -32,6 +32,13 @@ SCRIPTS_ALLOW_EXACT: frozenset[str] = frozenset(
     }
 )
 
+# Tests that embed NEEDLE in fixtures for audit / path checks.
+TESTS_ALLOW_EXACT: frozenset[str] = frozenset(
+    {
+        "tests/test_absolute_path_audit_no_git.py",
+    }
+)
+
 MAIN_CONFIG_RELPATHS: tuple[str, ...] = (
     "small_try/config.py",
     "small_head/config.py",
@@ -154,6 +161,8 @@ def is_allowlisted_tracked(rel_posix: str) -> bool:
         return True
     if rel_posix.startswith("scripts/"):
         return rel_posix in SCRIPTS_ALLOW_EXACT
+    if rel_posix.startswith("tests/"):
+        return rel_posix in TESTS_ALLOW_EXACT
     return False
 
 
