@@ -118,9 +118,9 @@ Exploratory variants differ in statistical strength: **`bilinear`**, **`gated_do
 
 These external reference points are cited for **SCALE CONTEXT only**, not for direct ranking against our runs.
 
-- **Vaswani et al. 2017** (*Attention is All You Need*), Table 2: WMT'14 EN–FR **base** model = **38.1 BLEU**; **big** model = **41.8 BLEU**. Trained on ~4.5M sentence pairs, beam search width = 4, length penalty 0.6.
+- **Vaswani et al. 2017** (*Attention is All You Need*), Table 2: WMT'14 EN–FR **base** model = **38.1 BLEU**; **big** model = **41.8 BLEU**. Trained on the WMT'14 EN-FR corpus (substantially larger than our 50k subset, on the order of ~36M sentence pairs at the corpus level), beam search width = 4, length penalty 0.6.
 - **Typical fairseq IWSLT'17 EN–FR tutorial** result: **30+ BLEU** on ~225k pairs with beam search.
-- **Our setup**: 50k subset (~1.1% of WMT'14 scale), 3000 training steps, **greedy** decoding, `max_seq_len` = 96. Scores are **expected to be significantly lower** than the references above.
+- **Our setup**: ~50k-pair working subset (a small fraction relative to full WMT'14 EN–FR corpus scale, on the order of ~36M pairs), 3000 training steps, **greedy** decoding, `max_seq_len` = 96. Scores are **expected to be significantly lower** than the references above.
 
 **Therefore:** our **15.80 ± 0.52 BLEU** on `fast_dot` (n=3, held-out test) is **consistent with the expected operational range** for a small-data + greedy setup—**not** a sign of a broken model. **Direct numerical comparison with Vaswani et al. 2017 is INVALID** due to different data scale, decoding, and training budget.
 

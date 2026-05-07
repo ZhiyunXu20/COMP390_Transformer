@@ -621,8 +621,8 @@ def build_row(
 MD_EXTERNAL_CONTEXT = (
     "### Context (external baselines — not our runs)\n\n"
     "For **scale context only** (do **not** rank this table against these numbers): "
-    "Vaswani et al. 2017 report **38.1 / 41.8 BLEU** (EN–FR base/big, ~4.5M pairs, "
-    "beam 4, length penalty 0.6); a typical IWSLT'17-style EN–FR tutorial is often "
+    "Vaswani et al. 2017 report **38.1 / 41.8 BLEU** (EN–FR base/big) on the much larger WMT'14 EN-FR corpus (~36M sentences), "
+    "with beam search width 4 and length penalty 0.6; a typical IWSLT'17-style EN–FR tutorial is often "
     "**30+ BLEU** on ~225k pairs with beam. This project uses **~50k pairs**, **greedy** "
     "decoding, short training (**3000 steps**), and `max_seq_len=96`, so **~15.8 BLEU** "
     "(multi-seed mean on `fast_dot`) is in a plausible range versus those references—not "
