@@ -9,7 +9,8 @@ Different runs in this archive were trained at different commits with `git_dirty
 ## How to verify the archive
 
 ```bash
-# 1) Install pinned dependencies first.
+# 1) Install dependencies (portable constraints; see docs/ENVIRONMENT.md for the
+#    H800 freeze if exact training-environment reproduction is needed).
 python -m pip install -r requirements.txt
 
 # 2) Strict archive integrity check.

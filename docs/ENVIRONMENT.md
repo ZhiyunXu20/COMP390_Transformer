@@ -1,5 +1,28 @@
 # Environment（复现环境说明）
 
+## Two-tier environment policy
+
+This repository ships **two** complementary dependency descriptions:
+
+1. **`requirements.txt`** — **Portable install constraints**. Lower-bound pins are set for reproducibility-critical libraries (e.g. sacrebleu, tokenizers, torch). Upper bounds are intentionally relaxed where safe so modern Python environments can resolve installs. **This is what users should run:**
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
+
+2. **`environment_freeze_h800.txt`** — **Exact training-host freeze**. This is a `pip freeze` snapshot from the H800 training node where the **36** archived runs were trained. Use it only to understand the **historical** training environment; **do not** `pip install -r` this file (it includes machine-local paths and CUDA-specific wheels).
+
+### Known version differences between the two files
+
+These differences are **intentional**:
+
+| Package | requirements.txt | environment_freeze_h800.txt | Note |
+|---------|------------------|----------------------------|------|
+| scipy | `>=1.9` | 1.17.1 | Welch *t*-test API stable across versions; `cross_seed_significance.py` has an **mpmath** fallback |
+| numpy | `>=1.24` | 1.26.4 | Training host pinned a 1.26.x line |
+| torch | `>=2.0,<3` | 2.7.0+cu128 (cp312 wheel URL in freeze) | CUDA **12.8** build in freeze; install a matching PyTorch build for your GPU |
+
+For scientific reproducibility, what matters is **not** matching every pip-freeze line: it is **determinism flags** (e.g. `--deterministic`), **SacreBLEU signature** alignment when reporting BLEU, and the **per-run** `git_commit` / seed protocol recorded under `runs/`.
+
 ## Python and PyTorch versions used
 
 以下自仓库内 **`environment_freeze_h800.txt`**（H800 训练机上的 `pip freeze`）整理；未单独列出 interpreter 行时，可根据 PyTorch wheel 推断 **`cp312` → Python 3.12**。
