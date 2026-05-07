@@ -62,6 +62,8 @@
 - `TabParallelDataset.__getitem__` 对 **tgt** 截断为 `budget-2`（保留 BOS/EOS 位）、src 截断为 `max_seq_len`（`small_try/dataset.py` `71:76`），长短句分布被裁剪改变——需在论文中说明。
 - **重现依赖**：默认路径指向 `data/splits/...`；若本地缺少文件则训练直接 `FileNotFoundError`（`dataset.py` `47:52`）。
 
+- **A30（汇总表工程列口径）**：**`results/attention_variants_test_summary.{md,csv}`** 中，**`is_aggregate=true`** 行的 **train_time_seconds**、**peak_gpu_memory_mib**、**BERTScore** 与 BLEU/chrF/chrF++/COMET 一致，按 **`source_run_names`** 三 seed 报告 **mean ± std (n=3)**；数据源为 **`runs/<run>/training_meta.json`**（墙钟与显存峰值）与各 seed 的 **`runs/<run>/test_eval/metrics_test.json`**（BERTScore）。**`is_aggregate=false`** 行为单 seed **n=1**，无 std。**`results/ablation_per_seed.csv`** 当前不填充 **`wall_time_seconds`**；不要从该 CSV 读取 per-seed 训练耗时（V9-A30：`scripts/summarize_attention_variants.py`）。
+
 ---
 
 ## 4. `metrics.json` 里的 BLEU 等：validation 还是 test？

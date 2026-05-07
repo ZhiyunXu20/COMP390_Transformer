@@ -19,6 +19,23 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+MD_AGGREGATION_PROVENANCE = (
+    "> **Aggregation provenance**: BLEU, chrF, chrF++, COMET, BERTScore, "
+    "train_time_seconds, and peak_gpu_memory_mib columns report mean ± std (n=3) "
+    "for `is_aggregate=true` rows (computed from `source_run_names`). "
+    "For `is_aggregate=false` rows, values are single-seed measurements (n=1) "
+    "with no statistical aggregation. The Welch p column is computed against "
+    "fast_dot's three-seed BLEU values per row's source seeds where applicable.\n"
+    "> \n"
+    "> Sources: BLEU/chrF/chrF++/COMET/BERTScore from "
+    "`runs/<source_run>/test_eval/metrics_test.json`; "
+    "train_time_seconds and peak_gpu_memory_mib from "
+    "`runs/<source_run>/training_meta.json`. "
+    "Note: `results/ablation_per_seed.csv` does not currently fill "
+    "`wall_time_seconds`; the authoritative per-seed values are in "
+    "`training_meta.json`."
+)
+
 DEFAULT_RUNS: tuple[str, ...] = (
     "fast_dot",
     "fast_add",
@@ -67,6 +84,12 @@ CSV_FIELDNAMES: tuple[str, ...] = (
     "chrFpp_std",
     "COMET_mean",
     "COMET_std",
+    "train_time_seconds_mean",
+    "train_time_seconds_std",
+    "peak_gpu_memory_mib_mean",
+    "peak_gpu_memory_mib_std",
+    "BERTScore_mean",
+    "BERTScore_std",
 )
 
 # Markdown table (Welch column title matches thesis-facing wording).
@@ -182,8 +205,112 @@ def fmt_ms(mean: float, std: float, n: int) -> str:
     return f"{mean:.2f} ± {std:.2f} (n={n})"
 
 
-def fmt_ms_comet(mean: float, std: float, n: int) -> str:
-    return f"{mean:.4f} ± {std:.4f} (n={n})"
+def fmt_ms_bert(mean: float, std: float, n: int) -> str:
+    return f"{mean:.5f} ± {std:.5f} (n={n})"
+
+
+def _mean_sample_stdev(values: list[float]) -> tuple[float | None, float | None]:
+    """Sample std (ddof=1); n<2 → std 0.0."""
+    if not values:
+        return None, None
+    m = statistics.mean(values)
+    if len(values) < 2:
+        return m, 0.0
+    return m, statistics.stdev(values)
+
+
+def load_per_seed_wall_peak_bert(repo_root: Path, source_run_names: list[str]) -> tuple[list[float], list[float], list[float]]:
+    """Authoritative wall/GPU from training_meta.json; BERTScore from each seed's test_eval/metrics_test.json."""
+    walls: list[float] = []
+    peaks: list[float] = []
+    berts: list[float] = []
+    for rn in source_run_names:
+        meta = load_json(repo_root / "runs" / rn / "training_meta.json")
+        if meta and meta.get("metadata_repaired") is not True:
+            w = meta.get("wall_time_seconds")
+            p = meta.get("peak_gpu_memory_mib")
+            if w is not None:
+                walls.append(float(w))
+            if p is not None:
+                peaks.append(float(p))
+        m = load_json(repo_root / "runs" / rn / "test_eval" / "metrics_test.json")
+        if m and m.get("BERTScore") is not None:
+            berts.append(float(m["BERTScore"]))
+    return walls, peaks, berts
+
+
+def apply_aggregate_engineering_fields(
+    row: dict[str, Any],
+    repo_root: Path,
+    *,
+    experiment: str,
+    n: int,
+) -> None:
+    """Multi-seed mean±std for train wall, peak GPU, BERTScore; legacy columns = rounded mean; MD strings set."""
+    source_runs = _multiseed_source_run_names(experiment).split(";")
+    walls, peaks, berts = load_per_seed_wall_peak_bert(repo_root, source_runs)
+
+    wm, ws = _mean_sample_stdev(walls)
+    pm, ps = _mean_sample_stdev(peaks)
+    bm, bs = _mean_sample_stdev(berts)
+
+    if wm is not None:
+        row["train_time_seconds_mean"] = wm
+        row["train_time_seconds_std"] = ws if ws is not None else ""
+        row["train_time_seconds"] = fmt_ms(wm, ws or 0.0, n)
+    else:
+        row["train_time_seconds_mean"] = ""
+        row["train_time_seconds_std"] = ""
+        row["train_time_seconds"] = ""
+
+    if pm is not None:
+        row["peak_gpu_memory_mib_mean"] = pm
+        row["peak_gpu_memory_mib_std"] = ps if ps is not None else ""
+        row["peak_gpu_memory_mib"] = fmt_ms(pm, ps or 0.0, n)
+    else:
+        row["peak_gpu_memory_mib_mean"] = ""
+        row["peak_gpu_memory_mib_std"] = ""
+        row["peak_gpu_memory_mib"] = ""
+
+    if bm is not None:
+        row["BERTScore_mean"] = bm
+        row["BERTScore_std"] = bs if bs is not None else ""
+        row["BERTScore"] = fmt_ms_bert(bm, bs or 0.0, n)
+    else:
+        row["BERTScore_mean"] = ""
+        row["BERTScore_std"] = ""
+        row["BERTScore"] = ""
+
+
+def apply_single_seed_engineering_fields(row: dict[str, Any], *, failed: bool = False) -> None:
+    """Mirror engineering metrics into *_mean; *_std empty; MD (n=1) when not failed."""
+    for col, decimals in (("train_time_seconds", 2), ("peak_gpu_memory_mib", 2), ("BERTScore", 5)):
+        v = row.get(col)
+        key_m = f"{col}_mean"
+        key_s = f"{col}_std"
+        if failed or not isinstance(v, (int, float)) or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
+            row[key_m] = ""
+            row[key_s] = ""
+            continue
+        fv = float(v)
+        row[key_m] = fv
+        row[key_s] = ""
+        if col == "BERTScore":
+            row[col] = f"{fv:.{decimals}f} (n=1)"
+        else:
+            row[col] = f"{fv:.{decimals}f} (n=1)"
+
+
+def clear_engineering_aggregate_fields(row: dict[str, Any]) -> None:
+    for k in (
+        "train_time_seconds_mean",
+        "train_time_seconds_std",
+        "peak_gpu_memory_mib_mean",
+        "peak_gpu_memory_mib_std",
+        "BERTScore_mean",
+        "BERTScore_std",
+    ):
+        row[k] = ""
 
 
 def fmt_welch_md(p: float | None) -> str:
@@ -191,6 +318,10 @@ def fmt_welch_md(p: float | None) -> str:
         return ""
     s = f"{p:.4f}".rstrip("0").rstrip(".")
     return f"p={s}"
+
+
+def fmt_ms_comet(mean: float, std: float, n: int) -> str:
+    return f"{mean:.4f} ± {std:.4f} (n={n})"
 
 
 def legacy_single_seed_blurb(data: dict[str, Any] | None) -> str:
@@ -213,6 +344,7 @@ def annotate_row_for_export(
     run: str,
     raw_metrics: dict[str, Any] | None,
     ms: dict[str, dict[str, Any]],
+    repo_root: Path,
 ) -> None:
     """Set MD strings, n_seeds, Welch column, CSV *_mean/*_std, and notes."""
     exp = RUN_TO_EXPERIMENT.get(run)
@@ -258,6 +390,7 @@ def annotate_row_for_export(
         else:
             extra = f"3 seeds from `results/ablation_per_seed.csv`; legacy single-seed `runs/{run}`: {leg}."
         row["notes"] = f"{extra} {base_notes}".strip()
+        apply_aggregate_engineering_fields(row, repo_root, experiment=exp, n=n)
         _apply_aggregate_provenance(row, exp)
         return
 
@@ -290,6 +423,7 @@ def annotate_row_for_export(
         for k in ("BLEU_std", "chrF_std", "chrFpp_std", "COMET_std"):
             row[k] = ""
         row["BLEU_n_seeds"] = 0
+        clear_engineering_aggregate_fields(row)
     else:
         row["n_seeds"] = 1
         row[MD_COL_WELCH] = ""
@@ -321,6 +455,11 @@ def annotate_row_for_export(
                 row[k_m] = ""
                 row[k_sd] = ""
         row["BLEU_n_seeds"] = 1
+
+    if is_failed:
+        apply_single_seed_engineering_fields(row, failed=True)
+    else:
+        apply_single_seed_engineering_fields(row, failed=False)
 
     caveat = "(single seed; not statistically tested vs fast_dot)"
     single_variants = {
@@ -539,6 +678,8 @@ def write_md(
     lines = [
         "# Attention variants — held-out test summary",
         "",
+        MD_AGGREGATION_PROVENANCE,
+        "",
         disclaimer,
         head,
         sep,
@@ -561,6 +702,15 @@ def write_md(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _csv_round_or_blank(value: Any, ndigits: int) -> Any:
+    if value == "" or value is None:
+        return ""
+    try:
+        return round(float(value), ndigits)
+    except (TypeError, ValueError):
+        return ""
+
+
 def csv_export_row(row: dict[str, Any]) -> dict[str, Any]:
     """Map in-memory row to CSV columns; primary BLEU/chrF/chrF++/COMET columns = means."""
     mean_alias = {
@@ -573,6 +723,12 @@ def csv_export_row(row: dict[str, Any]) -> dict[str, Any]:
     for k in CSV_FIELDNAMES:
         if k in mean_alias:
             out[k] = row.get(mean_alias[k], "")
+        elif k == "train_time_seconds":
+            out[k] = _csv_round_or_blank(row.get("train_time_seconds_mean"), 2)
+        elif k == "peak_gpu_memory_mib":
+            out[k] = _csv_round_or_blank(row.get("peak_gpu_memory_mib_mean"), 2)
+        elif k == "BERTScore":
+            out[k] = _csv_round_or_blank(row.get("BERTScore_mean"), 5)
         else:
             out[k] = row.get(k, "")
     return out
@@ -612,6 +768,12 @@ def apply_legacy_export_columns(row: dict[str, Any]) -> None:
         "chrFpp_std",
         "COMET_mean",
         "COMET_std",
+        "train_time_seconds_mean",
+        "train_time_seconds_std",
+        "peak_gpu_memory_mib_mean",
+        "peak_gpu_memory_mib_std",
+        "BERTScore_mean",
+        "BERTScore_std",
     ):
         row[k] = ""
     _apply_single_seed_provenance(row, str(row.get("run") or ""))
@@ -665,7 +827,7 @@ def main() -> None:
         data = load_json(met_path)
         row = build_row(run, data, sanity_map, repo_root, artifact_run=artifact_run)
         if ms_ok:
-            annotate_row_for_export(row, run, data, ms)
+            annotate_row_for_export(row, run, data, ms, repo_root)
         else:
             apply_legacy_export_columns(row)
         rows.append(row)
